@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Nueva rutina{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h4><i class="bi bi-plus-circle"></i> Nueva rutina</h4>
+                <form method="post" action="/routines/new">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la rutina</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Push A, Pull B, Piernas..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción (opcional)</label>
+                        <textarea name="descripcion" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Día de la semana (opcional)</label>
+                        <select name="dia_semana" class="form-select">
+                            <option value="">Sin asignar</option>
+                            <option value="Lunes">Lunes</option>
+                            <option value="Martes">Martes</option>
+                            <option value="Miércoles">Miércoles</option>
+                            <option value="Jueves">Jueves</option>
+                            <option value="Viernes">Viernes</option>
+                            <option value="Sábado">Sábado</option>
+                            <option value="Domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <p class="text-muted small">Después de crear podrás añadir ejercicios con imágenes</p>
+                    <button type="submit" class="btn btn-warning w-100">Crear rutina</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

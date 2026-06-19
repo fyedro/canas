@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ workout.nombre }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="/workout" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Historial</a>
+    <h2>{{ workout.nombre }}</h2>
+    <p class="text-muted">
+        {{ workout.fecha.strftime("%d %b %Y") }}
+        {% if workout.duracion %} · {{ workout.duracion }} minutos{% endif %}
+        {% if total_volume %} · <strong>{{ "%.0f"|format(total_volume) }} kg</strong> volumen total{% endif %}
+    </p>
+</div>
+
+{% for ex_name, sets in exercises.items() %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>{{ ex_name }}</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-dark mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Peso</th>
+                        <th>Reps</th>
+                        {% if sets[0].rpe %}<th>RPE</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sets %}
+                    <tr>
+                        <td>{{ s.set_number }}</td>
+                        <td>{{ "%.1f"|format(s.weight) if s.weight else "-" }} kg</td>
+                        <td>{{ s.reps if s.reps else "-" }}</td>
+                        {% if s.rpe %}<td>{{ s.rpe }}</td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Historial{% endblock %}
+{% block content %}
+<h2><i class="bi bi-clock-history"></i> Historial de entrenamientos</h2>
+
+{% if workouts %}
+<div class="list-group mt-3">
+    {% for w in workouts %}
+    <a href="/workout/{{ w.id }}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between">
+            <div>
+                <strong>{{ w.nombre }}</strong>
+                <small class="text-muted d-block">{{ w.fecha.strftime("%d %b %Y") }}</small>
+            </div>
+            <div class="text-end">
+                {% if w.duracion %}
+                <span class="badge bg-secondary">{{ w.duracion }} min</span>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-clock-history display-1 text-muted"></i>
+    <p class="mt-3 text-muted">No hay entrenamientos registrados</p>
+    <a href="/routines" class="btn btn-warning">Ir a rutinas</a>
+</div>
+{% endif %}
+{% endblock %}

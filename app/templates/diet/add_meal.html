@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Añadir {{ tipo }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4>{{ tipo }}</h4>
+                <p class="text-muted">Comida creada. Ahora añade alimentos.</p>
+                <a href="/diet" class="btn btn-outline-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

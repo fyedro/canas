@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Progreso{% endblock %}
+{% block content %}
+<h2><i class="bi bi-graph-up"></i> Progreso</h2>
+
+<div class="row g-3 mt-2">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="bi bi-plus-circle"></i> Registrar medidas</h5>
+                <form method="post" action="/progress/measure">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" name="peso" class="form-control" step="0.1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" name="fecha" class="form-control" value="{{ measurements[-1].fecha if measurements else '' }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Brazo (cm)</label>
+                            <input type="number" name="brazo" class="form-control" step="0.5">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Cintura (cm)</label>
+                            <input type="number" name="cintura" class="form-control" step="0.5">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Pecho (cm)</label>
+                            <input type="number" name="pecho" class="form-control" step="0.5">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Cadera (cm)</label>
+                            <input type="number" name="cadera" class="form-control" step="0.5">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Pierna (cm)</label>
+                            <input type="number" name="pierna" class="form-control" step="0.5">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Evolución del peso</h5>
+                {% if measurements|length > 1 %}
+                <canvas id="weightChart" height="200"></canvas>
+                {% else %}
+                <p class="text-muted">Registra al menos 2 mediciones para ver la gráfica</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Measurements table -->
+{% if measurements %}
+<div class="card mt-3">
+    <div class="card-body">
+        <h5>Historial de medidas</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Peso</th>
+                        <th>Brazo</th>
+                        <th>Cintura</th>
+                        <th>Pecho</th>
+                        <th>Cadera</th>
+                        <th>Pierna</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in measurements %}
+                    <tr>
+                        <td>{{ m.fecha.strftime("%d/%m") }}</td>
+                        <td>{{ "%.1f"|format(m.peso) if m.peso else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.brazo) if m.brazo else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.cintura) if m.cintura else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.pecho) if m.pecho else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.cadera) if m.cadera else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.pierna) if m.pierna else "-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent workouts summary -->
+{% if recent_workouts %}
+<div class="card mt-3">
+    <div class="card-body">
+        <h5>Últimos entrenamientos</h5>
+        <canvas id="volumeChart" height="200"></canvas>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{% if measurements|length > 1 %}
+const weightCtx = document.getElementById('weightChart').getContext('2d');
+new Chart(weightCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for m in measurements %}'{{ m.fecha.strftime("%d/%m") }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Peso (kg)',
+            data: [{% for m in measurements %}{{ m.peso }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: '#e94560',
+            backgroundColor: 'rgba(233, 69, 96, 0.1)',
+            fill: true,
+            tension: 0.3,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: false } }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

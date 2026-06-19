@@ -1,0 +1,93 @@
+body {
+    background-color: #1a1a2e;
+    min-height: 100vh;
+}
+
+.card {
+    background-color: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 12px;
+}
+
+.card:hover {
+    border-color: #e94560;
+    transition: border-color 0.2s;
+}
+
+.btn-warning {
+    background-color: #e94560;
+    border-color: #e94560;
+    color: #fff;
+}
+
+.btn-warning:hover {
+    background-color: #d63851;
+    border-color: #d63851;
+    color: #fff;
+}
+
+.text-warning {
+    color: #e94560 !important;
+}
+
+a.text-decoration-none {
+    color: #e94560;
+}
+
+a.text-decoration-none:hover {
+    color: #d63851;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.exercise-card {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.exercise-card:hover {
+    transform: scale(1.02);
+}
+
+.exercise-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.set-input {
+    width: 70px;
+}
+
+.timer-display {
+    font-size: 3rem;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.meal-card {
+    border-left: 4px solid #e94560;
+}
+
+.progress-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .set-input {
+        width: 60px;
+    }
+    .timer-display {
+        font-size: 2.5rem;
+    }
+}

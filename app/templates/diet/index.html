@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Dieta{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-egg-fried"></i> Dieta</h2>
+    <div>
+        <a href="/diet?fecha={{ fecha.strftime('%Y-%m-%d') }}" class="btn btn-outline-secondary btn-sm">{{ fecha.strftime("%d %b %Y") }}</a>
+    </div>
+</div>
+
+<!-- Totals cards -->
+<div class="row g-2 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body py-3">
+                <small class="text-muted">Calorías</small>
+                <h4 class="mb-0">{{ "%.0f"|format(totals.calorias) }}</h4>
+                {% if goals and goals.calorias_objetivo %}
+                <small class="text-muted">/ {{ "%.0f"|format(goals.calorias_objetivo) }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body py-3">
+                <small class="text-muted">Proteínas</small>
+                <h4 class="mb-0">{{ "%.0f"|format(totals.proteinas) }}g</h4>
+                {% if goals and goals.proteinas_objetivo %}
+                <small class="text-muted">/ {{ "%.0f"|format(goals.proteinas_objetivo) }}g</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body py-3">
+                <small class="text-muted">Carbos</small>
+                <h4 class="mb-0">{{ "%.0f"|format(totals.carbs) }}g</h4>
+                {% if goals and goals.carbs_objetivo %}
+                <small class="text-muted">/ {{ "%.0f"|format(goals.carbs_objetivo) }}g</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body py-3">
+                <small class="text-muted">Grasas</small>
+                <h4 class="mb-0">{{ "%.0f"|format(totals.grasas) }}g</h4>
+                {% if goals and goals.grasas_objetivo %}
+                <small class="text-muted">/ {{ "%.0f"|format(goals.grasas_objetivo) }}g</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Meals -->
+{% for tipo in meal_types %}
+{% set meal = meals|selectattr("tipo", "equalto", tipo)|first %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ tipo }}</h5>
+            {% if meal %}
+            <a href="/diet/meal/{{ meal.id }}/add-food" class="btn btn-outline-warning btn-sm">Añadir alimento</a>
+            {% else %}
+            <form method="post" action="/diet/add/{{ tipo }}" style="display:inline">
+                <input type="hidden" name="fecha" value="{{ fecha.strftime('%Y-%m-%d') }}">
+                <button type="submit" class="btn btn-outline-warning btn-sm">+</button>
+            </form>
+            {% endif %}
+        </div>
+        {% if meal and meal.foods %}
+        <div class="mt-2">
+            {% for food in meal.foods %}
+            <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary">
+                <div>
+                    <strong>{{ food.food_name }}</strong>
+                    <small class="text-muted"> ({{ "%.0f"|format(food.cantidad) }}g)</small>
+                </div>
+                <small>{{ "%.0f"|format(food.calorias * food.cantidad / 100) }} kcal</small>
+            </div>
+            {% endfor %}
+            {% set meal_totals = namespace(cal=0, pro=0, carbs=0, gras=0) %}
+            {% for f in meal.foods %}
+                {% set meal_totals.cal = meal_totals.cal + (f.calorias or 0) * f.cantidad / 100 %}
+                {% set meal_totals.pro = meal_totals.pro + (f.proteinas or 0) * f.cantidad / 100 %}
+                {% set meal_totals.carbs = meal_totals.carbs + (f.carbs or 0) * f.cantidad / 100 %}
+                {% set meal_totals.gras = meal_totals.gras + (f.grasas or 0) * f.cantidad / 100 %}
+            {% endfor %}
+            <small class="text-muted">
+                P: {{ "%.0f"|format(meal_totals.pro) }}g · C: {{ "%.0f"|format(meal_totals.carbs) }}g · G: {{ "%.0f"|format(meal_totals.gras) }}g
+            </small>
+        </div>
+        {% elif meal %}
+        <p class="text-muted small mt-2">Sin alimentos añadidos</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Goals card -->
+<div class="card mt-3">
+    <div class="card-body">
+        <h6><i class="bi bi-bullseye"></i> Objetivos diarios</h6>
+        <form method="post" action="/diet/goals" class="row g-2">
+            <div class="col-3">
+                <label class="form-label small">Calorías</label>
+                <input type="number" name="calorias" class="form-control form-control-sm" value="{{ goals.calorias_objetivo|default(2000)|int }}">
+            </div>
+            <div class="col-3">
+                <label class="form-label small">Proteínas (g)</label>
+                <input type="number" name="proteinas" class="form-control form-control-sm" value="{{ goals.proteinas_objetivo|default(150)|int }}">
+            </div>
+            <div class="col-3">
+                <label class="form-label small">Carbos (g)</label>
+                <input type="number" name="carbs" class="form-control form-control-sm" value="{{ goals.carbs_objetivo|default(250)|int }}">
+            </div>
+            <div class="col-3">
+                <label class="form-label small">Grasas (g)</label>
+                <input type="number" name="grasas" class="form-control form-control-sm" value="{{ goals.grasas_objetivo|default(65)|int }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-warning btn-sm">Guardar objetivos</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

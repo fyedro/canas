@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Añadir alimento{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>Buscar alimento</h5>
+                <form method="get" action="/diet/meal/{{ meal.id }}/add-food">
+                    <div class="input-group">
+                        <input type="text" name="query" class="form-control" placeholder="Ej: pollo, arroz, huevo..." value="{{ query }}">
+                        <button type="submit" class="btn btn-warning">Buscar</button>
+                    </div>
+                </form>
+                <small class="text-muted">Datos de Open Food Facts</small>
+            </div>
+        </div>
+
+        {% if foods %}
+        <div class="list-group">
+            {% for food in foods %}
+            <div class="list-group-item">
+                <form method="post" action="/diet/meal/{{ meal.id }}/add-food">
+                    <input type="hidden" name="food_name" value="{{ food.name }}">
+                    <input type="hidden" name="calorias" value="{{ food.calorias }}">
+                    <input type="hidden" name="proteinas" value="{{ food.proteinas }}">
+                    <input type="hidden" name="carbs" value="{{ food.carbs }}">
+                    <input type="hidden" name="grasas" value="{{ food.grasas }}">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        {% if food.image %}
+                        <img src="{{ food.image }}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                        {% endif %}
+                        <strong class="flex-grow-1">{{ food.name[:60] }}</strong>
+                    </div>
+                    <div class="row g-1 align-items-end">
+                        <div class="col-3">
+                            <input type="number" name="cantidad" class="form-control form-control-sm" value="100" step="10">
+                            <small class="text-muted">gramos</small>
+                        </div>
+                        <div class="col-9">
+                            <small class="text-muted">
+                                {{ "%.0f"|format(food.calorias) }} kcal · P: {{ "%.1f"|format(food.proteinas) }}g · C: {{ "%.1f"|format(food.carbs) }}g · G: {{ "%.1f"|format(food.grasas) }}g
+                            </small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100 mt-2">Añadir</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif query %}
+        <p class="text-muted">No se encontraron alimentos para "{{ query }}"</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
