@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Routine, RoutineExercise, Exercise, UserProfile
 from app.auth import get_current_user
+import httpx
 
 router = APIRouter(prefix="/routines", tags=["routines"])
 templates = Jinja2Templates(directory="app/templates")
@@ -30,6 +31,63 @@ async def list_routines(
     routines = result.scalars().all()
     return templates.TemplateResponse(request, "routines/list.html", {
         "user": user, "routines": routines
+    })
+
+
+@router.get("/exercises", response_class=HTMLResponse)
+async def exercise_library(
+    request: Request,
+    grupo: str = Query(None),
+    search: str = Query(""),
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    query = select(Exercise)
+    if grupo:
+        query = query.where(Exercise.muscle_group == grupo)
+    if search:
+        query = query.where(
+            Exercise.name.ilike(f"%{search}%") | Exercise.name_es.ilike(f"%{search}%")
+        )
+    query = query.order_by(Exercise.muscle_group, Exercise.name)
+    result = await db.execute(query)
+    exercises = result.scalars().all()
+
+    grupos = ["Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps", "Piernas", "Glúteos", "Abdomen", "Cardio"]
+
+    # Try to get images from wger for exercises missing them
+    async with httpx.AsyncClient() as client:
+        for ex in exercises:
+            if ex.image_url:
+                continue
+            try:
+                resp = await client.get(
+                    "https://wger.de/api/v2/exercise/",
+                    params={"search": ex.name, "language": 4, "limit": 3},
+                    timeout=5,
+                )
+                data = resp.json()
+                for wger_ex in data.get("results", []):
+                    img_resp = await client.get(
+                        "https://wger.de/api/v2/exerciseimage/",
+                        params={"exercise": wger_ex["id"], "limit": 1},
+                        timeout=5,
+                    )
+                    img_data = img_resp.json()
+                    if img_data.get("results"):
+                        ex.image_url = img_data["results"][0]["image"]
+                        ex.wger_id = wger_ex["id"]
+                        break
+            except Exception:
+                pass
+    await db.commit()
+
+    return templates.TemplateResponse(request, "routines/exercises.html", {
+        "user": user, "exercises": exercises,
+        "grupos": grupos, "grupo": grupo, "search": search,
     })
 
 
