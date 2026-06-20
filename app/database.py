@@ -2,10 +2,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
-if settings.database_url:
+if settings.raw_database_url:
     engine = create_async_engine(settings.database_url, echo=settings.debug)
 else:
-    engine = create_async_engine("sqlite+aiosqlite:///./canas.db", echo=settings.debug)
+    sqlite_path = os.getenv("SQLITE_PATH", "./canas.db")
+    engine = create_async_engine(f"sqlite+aiosqlite:///{sqlite_path}", echo=settings.debug)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
