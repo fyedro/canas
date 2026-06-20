@@ -156,7 +156,7 @@ async def view_routine(
     result = await db.execute(
         select(Routine)
         .where(Routine.id == routine_id, Routine.user_id == user.id)
-        .options(selectinload(Routine.exercises))
+        .options(selectinload(Routine.exercises).selectinload(RoutineExercise.exercise))
     )
     routine = result.scalar_one_or_none()
     if not routine:
