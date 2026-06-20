@@ -285,8 +285,11 @@ async def delete_routine(
     if not user:
         return RedirectResponse(url="/auth/login")
 
-    await db.execute(
-        delete(Routine).where(Routine.id == routine_id, Routine.user_id == user.id)
+    result = await db.execute(
+        select(Routine).where(Routine.id == routine_id, Routine.user_id == user.id)
     )
+    routine = result.scalar_one_or_none()
+    if routine:
+        await db.delete(routine)
     await db.commit()
     return RedirectResponse(url="/routines", status_code=302)
