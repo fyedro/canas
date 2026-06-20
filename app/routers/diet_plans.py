@@ -470,6 +470,89 @@ async def assign_plan_to_date(
     return RedirectResponse(url="/diet-plans", status_code=302)
 
 
+@router.get("/{plan_id}/week", response_class=HTMLResponse)
+async def week_view(
+    request: Request,
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(DietPlan)
+        .where(DietPlan.id == plan_id, DietPlan.user_id == user.id)
+        .options(selectinload(DietPlan.meals).selectinload(DietPlanMeal.foods))
+    )
+    plan = result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    week_days = [week_start + timedelta(days=i) for i in range(7)]
+    days_es = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+    day_meals = []
+    for i, day in enumerate(week_days):
+        meals_for_day = []
+        for meal in plan.meals:
+            foods_for_day = []
+            for food in meal.foods:
+                options = [o.strip() for o in food.food_name.split(" / ") if o.strip()]
+                if food.cantidad and len(options) > 1:
+                    idx = i % len(options)
+                    chosen = options[idx]
+                elif len(options) > 1:
+                    idx = i % len(options)
+                    chosen = options[idx]
+                else:
+                    chosen = food.food_name
+                foods_for_day.append({
+                    "name": chosen,
+                    "cantidad": food.cantidad,
+                    "unidad": food.unidad,
+                })
+            meals_for_day.append({"tipo": meal.tipo, "foods": foods_for_day})
+        day_meals.append({"day_num": i + 1, "day_es": days_es[i], "date": day, "meals": meals_for_day})
+
+    return templates.TemplateResponse(request, "diet_plans/week.html", {
+        "user": user, "plan": plan,
+        "week_days": week_days, "day_meals": day_meals,
+    })
+
+
+@router.post("/{plan_id}/assign-week")
+async def assign_plan_to_week(
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        result = await db.execute(
+            select(DietPlanAssignment).where(
+                DietPlanAssignment.user_id == user.id,
+                DietPlanAssignment.fecha == day,
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            existing.diet_plan_id = plan_id
+        else:
+            db.add(DietPlanAssignment(user_id=user.id, diet_plan_id=plan_id, fecha=day))
+
+    await db.commit()
+    return RedirectResponse(url="/diet-plans", status_code=302)
+
+
 @router.post("/unassign/{assignment_id}")
 async def unassign_plan(
     assignment_id: int,
