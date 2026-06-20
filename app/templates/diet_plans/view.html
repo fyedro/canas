@@ -9,7 +9,13 @@
         <p class="text-muted">{{ plan.descripcion }}</p>
         {% endif %}
     </div>
-    <a href="/diet-plans/{{ plan.id }}/edit" class="btn btn-outline-secondary">Editar</a>
+    <div class="d-flex gap-2">
+        <a href="/diet-plans/{{ plan.id }}/edit" class="btn btn-outline-secondary">Editar</a>
+        <form method="post" action="/diet-plans/{{ plan.id }}/delete" style="display:inline"
+              onsubmit="return confirm('¿Eliminar {{ plan.nombre }}?')">
+            <button type="submit" class="btn btn-outline-danger">Eliminar</button>
+        </form>
+    </div>
 </div>
 
 {% for meal in plan.meals %}
