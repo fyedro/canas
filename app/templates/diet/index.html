@@ -8,6 +8,48 @@
     </div>
 </div>
 
+{% if assigned_plan %}
+<div class="card mb-3 border-warning">
+    <div class="card-body py-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-calendar-check text-warning"></i> Plan de hoy: {{ assigned_plan.nombre }}</h6>
+            <a href="/diet-plans/{{ assigned_plan.id }}" class="btn btn-outline-warning btn-sm">Ver plan</a>
+        </div>
+        <div class="row g-1 mt-2">
+            {% set total_cal = namespace(v=0) %}
+            {% set total_pro = namespace(v=0) %}
+            {% set total_carbs = namespace(v=0) %}
+            {% set total_gras = namespace(v=0) %}
+            {% for m in assigned_plan.meals %}
+                {% for f in m.foods %}
+                    {% set factor = (f.cantidad or 100) / 100 %}
+                    {% set total_cal.v = total_cal.v + (f.calorias or 0) * factor %}
+                    {% set total_pro.v = total_pro.v + (f.proteinas or 0) * factor %}
+                    {% set total_carbs.v = total_carbs.v + (f.carbs or 0) * factor %}
+                    {% set total_gras.v = total_gras.v + (f.grasas or 0) * factor %}
+                {% endfor %}
+            {% endfor %}
+            <div class="col-3 col-md-3 text-center">
+                <small class="text-muted d-block">Cal</small>
+                <span class="fw-bold">{{ "%.0f"|format(total_cal.v) }}</span>
+            </div>
+            <div class="col-3 col-md-3 text-center">
+                <small class="text-muted d-block">Proteínas</small>
+                <span class="fw-bold">{{ "%.0f"|format(total_pro.v) }}g</span>
+            </div>
+            <div class="col-3 col-md-3 text-center">
+                <small class="text-muted d-block">Carbos</small>
+                <span class="fw-bold">{{ "%.0f"|format(total_carbs.v) }}g</span>
+            </div>
+            <div class="col-3 col-md-3 text-center">
+                <small class="text-muted d-block">Grasas</small>
+                <span class="fw-bold">{{ "%.0f"|format(total_gras.v) }}g</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Totals cards -->
 <div class="row g-2 mb-4">
     <div class="col-6 col-md-3">

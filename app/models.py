@@ -43,6 +43,8 @@ class UserProfile(Base):
     meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
     measurements = relationship("BodyMeasurement", back_populates="user", cascade="all, delete-orphan")
     nutrition_goals = relationship("DailyNutrition", back_populates="user", cascade="all, delete-orphan")
+    diet_plans = relationship("DietPlan", back_populates="user", cascade="all, delete-orphan")
+    diet_assignments = relationship("DietPlanAssignment", back_populates="user", cascade="all, delete-orphan")
 
 
 class Exercise(Base):
@@ -201,3 +203,63 @@ class DailyNutrition(Base):
     grasas_objetivo = Column(Float, nullable=True, default=65)
 
     user = relationship("UserProfile", back_populates="nutrition_goals")
+
+
+class DietPlan(Base):
+    __tablename__ = "diet_plans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("user_profiles.id"), nullable=False)
+    nombre = Column(String(200), nullable=False)
+    descripcion = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("UserProfile")
+    meals = relationship("DietPlanMeal", back_populates="plan",
+                         cascade="all, delete-orphan",
+                         order_by="DietPlanMeal.orden")
+    assignments = relationship("DietPlanAssignment", back_populates="plan",
+                               cascade="all, delete-orphan")
+
+
+class DietPlanMeal(Base):
+    __tablename__ = "diet_plan_meals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    diet_plan_id = Column(Integer, ForeignKey("diet_plans.id"), nullable=False)
+    tipo = Column(String(20), nullable=False)
+    notas = Column(Text, nullable=True)
+    orden = Column(Integer, nullable=False, default=0)
+
+    plan = relationship("DietPlan", back_populates="meals")
+    foods = relationship("DietPlanFood", back_populates="meal",
+                         cascade="all, delete-orphan")
+
+
+class DietPlanFood(Base):
+    __tablename__ = "diet_plan_foods"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    diet_plan_meal_id = Column(Integer, ForeignKey("diet_plan_meals.id"), nullable=False)
+    food_name = Column(String(300), nullable=False)
+    cantidad = Column(Float, nullable=True)
+    unidad = Column(String(30), nullable=True, default="g")
+    calorias = Column(Float, nullable=True)
+    proteinas = Column(Float, nullable=True)
+    carbs = Column(Float, nullable=True)
+    grasas = Column(Float, nullable=True)
+    notas = Column(Text, nullable=True)
+
+    meal = relationship("DietPlanMeal", back_populates="foods")
+
+
+class DietPlanAssignment(Base):
+    __tablename__ = "diet_plan_assignments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("user_profiles.id"), nullable=False)
+    diet_plan_id = Column(Integer, ForeignKey("diet_plans.id"), nullable=False)
+    fecha = Column(Date, nullable=False)
+
+    user = relationship("UserProfile")
+    plan = relationship("DietPlan", back_populates="assignments")

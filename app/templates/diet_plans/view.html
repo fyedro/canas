@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.nombre }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a href="/diet-plans" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Volver</a>
+        <h2>{{ plan.nombre }}</h2>
+        {% if plan.descripcion %}
+        <p class="text-muted">{{ plan.descripcion }}</p>
+        {% endif %}
+    </div>
+    <a href="/diet-plans/{{ plan.id }}/edit" class="btn btn-outline-secondary">Editar</a>
+</div>
+
+{% for meal in plan.meals %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>{{ meal.tipo }}</h5>
+        {% if meal.notas %}
+        <small class="text-muted">{{ meal.notas }}</small>
+        {% endif %}
+        {% if meal.foods %}
+        <div class="mt-2">
+            {% for food in meal.foods %}
+            <div class="d-flex justify-content-between py-1 border-bottom border-secondary">
+                <div>
+                    <strong>{{ food.food_name }}</strong>
+                    {% if food.cantidad %}
+                    <small class="text-muted"> · {{ "%.0f"|format(food.cantidad) }}{{ food.unidad }}</small>
+                    {% endif %}
+                </div>
+                <small class="text-muted">
+                    {% if food.calorias %}
+                    {{ "%.0f"|format(food.calorias * (food.cantidad or 100) / 100) }} kcal
+                    {% endif %}
+                </small>
+            </div>
+            {% if food.notas %}
+            <small class="text-muted d-block mb-1"><em>{{ food.notas }}</em></small>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% set meal_cal = namespace(v=0) %}
+        {% set meal_pro = namespace(v=0) %}
+        {% set meal_carbs = namespace(v=0) %}
+        {% set meal_gras = namespace(v=0) %}
+        {% for f in meal.foods %}
+            {% set factor = (f.cantidad or 100) / 100 %}
+            {% set meal_cal.v = meal_cal.v + (f.calorias or 0) * factor %}
+            {% set meal_pro.v = meal_pro.v + (f.proteinas or 0) * factor %}
+            {% set meal_carbs.v = meal_carbs.v + (f.carbs or 0) * factor %}
+            {% set meal_gras.v = meal_gras.v + (f.grasas or 0) * factor %}
+        {% endfor %}
+        <small class="text-muted d-block mt-1">
+            Cal: {{ "%.0f"|format(meal_cal.v) }} · P: {{ "%.0f"|format(meal_pro.v) }}g · C: {{ "%.0f"|format(meal_carbs.v) }}g · G: {{ "%.0f"|format(meal_gras.v) }}g
+        </small>
+        {% else %}
+        <p class="text-muted small">Sin alimentos</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="card">
+    <div class="card-body">
+        <h5>Totales del día</h5>
+        {% set total_cal = namespace(v=0) %}
+        {% set total_pro = namespace(v=0) %}
+        {% set total_carbs = namespace(v=0) %}
+        {% set total_gras = namespace(v=0) %}
+        {% for m in plan.meals %}
+            {% for f in m.foods %}
+                {% set factor = (f.cantidad or 100) / 100 %}
+                {% set total_cal.v = total_cal.v + (f.calorias or 0) * factor %}
+                {% set total_pro.v = total_pro.v + (f.proteinas or 0) * factor %}
+                {% set total_carbs.v = total_carbs.v + (f.carbs or 0) * factor %}
+                {% set total_gras.v = total_gras.v + (f.grasas or 0) * factor %}
+            {% endfor %}
+        {% endfor %}
+        <div class="row text-center">
+            <div class="col-3"><strong>{{ "%.0f"|format(total_cal.v) }}</strong><br><small class="text-muted">kcal</small></div>
+            <div class="col-3"><strong>{{ "%.0f"|format(total_pro.v) }}g</strong><br><small class="text-muted">Proteínas</small></div>
+            <div class="col-3"><strong>{{ "%.0f"|format(total_carbs.v) }}g</strong><br><small class="text-muted">Carbos</small></div>
+            <div class="col-3"><strong>{{ "%.0f"|format(total_gras.v) }}g</strong><br><small class="text-muted">Grasas</small></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

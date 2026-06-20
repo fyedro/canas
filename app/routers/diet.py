@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
-from app.models import Meal, FoodItem, DailyNutrition, UserProfile
+from app.models import Meal, FoodItem, DailyNutrition, UserProfile, DietPlanAssignment, DietPlan, DietPlanMeal, DietPlanFood
 from app.auth import get_current_user
 from datetime import date
 import httpx
@@ -50,11 +50,20 @@ async def diet_page(
             totals["carbs"] += (food.carbs or 0) * (food.cantidad / 100)
             totals["grasas"] += (food.grasas or 0) * (food.cantidad / 100)
 
+    # Get assigned plan for today
+    result = await db.execute(
+        select(DietPlanAssignment)
+        .where(DietPlanAssignment.user_id == user.id, DietPlanAssignment.fecha == today)
+        .options(selectinload(DietPlanAssignment.plan).selectinload(DietPlan.meals).selectinload(DietPlanMeal.foods))
+    )
+    assigned = result.scalar_one_or_none()
+
     meal_types = ["Desayuno", "Comida", "Cena", "Snack", "Postre", "Bebida"]
 
     return templates.TemplateResponse(request, "diet/index.html", {
         "user": user, "meals": meals, "goals": goals,
         "totals": totals, "fecha": today, "meal_types": meal_types,
+        "assigned_plan": assigned.plan if assigned else None,
     })
 
 
