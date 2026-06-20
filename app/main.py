@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db, init_db, async_session
 from app.auth import router as auth_router, get_current_user
-from app.routers import routines, diet, progress, workout, api
+from app.routers import routines, diet, progress, workout
 from app.config import settings
 from app.models import Exercise
 templates = Jinja2Templates(directory="app/templates")
@@ -31,7 +31,6 @@ app.include_router(routines.router)
 app.include_router(diet.router)
 app.include_router(progress.router)
 app.include_router(workout.router)
-app.include_router(api.router)
 
 
 @app.get("/", response_class=HTMLResponse)
