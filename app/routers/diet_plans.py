@@ -47,7 +47,7 @@ async def list_plans(
     assignments = result.scalars().all()
     assignment_map = {a.fecha.isoformat(): a for a in assignments}
 
-    return templates.TemplateResponse("diet_plans/list.html", {
+    return templates.TemplateResponse(request, "diet_plans/list.html", {
         "user": user, "plans": plans,
         "week_days": week_days, "assignment_map": assignment_map,
         "today": today,
@@ -61,7 +61,7 @@ async def new_plan_page(
 ):
     if not user:
         return RedirectResponse(url="/auth/login")
-    return templates.TemplateResponse("diet_plans/new.html", {
+    return templates.TemplateResponse(request, "diet_plans/new.html", {
         "user": user, "meal_types": TIPOS_COMIDA
     })
 
@@ -106,7 +106,7 @@ async def view_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan no encontrado")
 
-    return templates.TemplateResponse("diet_plans/view.html", {
+    return templates.TemplateResponse(request, "diet_plans/view.html", {
         "user": user, "plan": plan
     })
 
@@ -130,7 +130,7 @@ async def edit_plan_page(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan no encontrado")
 
-    return templates.TemplateResponse("diet_plans/edit.html", {
+    return templates.TemplateResponse(request, "diet_plans/edit.html", {
         "user": user, "plan": plan, "meal_types": TIPOS_COMIDA
     })
 
