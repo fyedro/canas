@@ -40,6 +40,13 @@ async def add_measurement(
     request: Request,
     fecha: str = Form(""),
     peso: float = Form(None),
+    grasa_corporal: float = Form(None),
+    musculo: float = Form(None),
+    agua: float = Form(None),
+    hueso: float = Form(None),
+    imc: float = Form(None),
+    grasa_visceral: float = Form(None),
+    metabolismo_basal: float = Form(None),
     db: AsyncSession = Depends(get_db),
     user: UserProfile = Depends(get_current_user),
 ):
@@ -56,13 +63,22 @@ async def add_measurement(
     )
     existing = result.scalar_one_or_none()
 
+    fields = {
+        "peso": peso, "grasa_corporal": grasa_corporal,
+        "musculo": musculo, "agua": agua, "hueso": hueso,
+        "imc": imc, "grasa_visceral": grasa_visceral,
+        "metabolismo_basal": metabolismo_basal,
+    }
+
     if existing:
-        if peso: existing.peso = peso
+        for k, v in fields.items():
+            if v is not None:
+                setattr(existing, k, v)
     else:
-        bm = BodyMeasurement(
-            user_id=user.id, fecha=today,
-            peso=peso or None,
-        )
+        bm = BodyMeasurement(user_id=user.id, fecha=today)
+        for k, v in fields.items():
+            if v is not None:
+                setattr(bm, k, v)
         db.add(bm)
 
     await db.commit()
