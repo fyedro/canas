@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Importar plan de dieta{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h4><i class="bi bi-file-text"></i> Importar plan de dieta</h4>
+                <p class="text-muted small">Pega el texto que te manda tu preparador. La app lo parseará automáticamente extrayendo comidas, alimentos y cantidades.</p>
+
+                <form method="post" action="/diet-plans/import">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del plan</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Definición, Volumen, Corte..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pega el texto de la dieta</label>
+                        <textarea name="texto" class="form-control" rows="15" placeholder="Ej:
+Desayuno: 40g crema de cacahuete + batido proteínas + café
+
+Almuerzo: 100g jamón york + 1 yogurt
+160g pollo + 40g arroz + ensalada
+
+Comida: ...
+
+Merienda: 125g yogur griego + 1 plátano + 25g almendras
+
+Cena: verdura libre + 160g pollo + 30g aguacate" required></textarea>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle"></i> Separa los alimentos con <strong>+</strong>. La app reconoce cantidades como <code>40g</code>, <code>160 gramos</code>, <code>1 unidad</code>. Las comidas deben empezar con: Desayuno, Almuerzo, Comida, Merienda, Cena, Snack o Postre.
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-magic"></i> Importar y estructurar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

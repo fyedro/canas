@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -67,6 +68,124 @@ async def new_plan_page(
 
 
 TIPOS_COMIDA = ["Desayuno", "Almuerzo", "Comida", "Merienda", "Cena", "Snack", "Postre"]
+
+
+def parse_diet_text(text: str):
+    meals_parsed = []
+    text = text.strip()
+
+    parts = re.split(
+        r'(?:^|\n)\s*(Desayuno|Almuerzo|Comida|Merienda|Cena|Snack|Postre)\s*[:\-]?\s*',
+        text, flags=re.IGNORECASE | re.MULTILINE
+    )
+
+    current_tipo = None
+    current_content = ""
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        lower = part.lower()
+        if lower in ("desayuno", "almuerzo", "comida", "merienda", "cena", "snack", "postre"):
+            if current_tipo and current_content:
+                meals_parsed.append((current_tipo, current_content))
+            current_tipo = part.capitalize()
+            current_content = ""
+        else:
+            if current_tipo:
+                current_content += " " + part if current_content else part
+
+    if current_tipo and current_content:
+        meals_parsed.append((current_tipo, current_content))
+
+    result = []
+    for tipo, content in meals_parsed:
+        content = re.sub(r'\s*\*\s*', ' ', content)
+        content = re.sub(r'\s*\.\s*$', '', content)
+        items = re.split(r'\s*\+\s*', content)
+        foods = []
+        for item in items:
+            item = item.strip()
+            if not item or item.lower() in ("", "y"):
+                continue
+            qty_match = re.search(
+                r'(\d+(?:[.,]\d+)?)\s*(gramos|g|gr|ml|unidad|unidades|cucharada|cucharadas|taza|tazas|kg|litro|l)\s*(?:de\s+)?',
+                item, re.IGNORECASE
+            )
+            if qty_match:
+                qty_str = qty_match.group(1).replace(",", ".")
+                qty = float(qty_str)
+                unit = qty_match.group(2).lower()
+                unit_map = {"g": "g", "gr": "g", "gramos": "g", "ml": "ml", "litro": "ml", "l": "ml",
+                            "unidad": "unidad", "unidades": "unidad",
+                            "cucharada": "cucharada", "cucharadas": "cucharada",
+                            "taza": "taza", "tazas": "taza", "kg": "g"}
+                qty = qty * 1000 if unit == "kg" else qty
+                unit_final = unit_map.get(unit, "g")
+                name = item[:qty_match.start()] + item[qty_match.end():]
+                name = re.sub(r'\s+', ' ', name).strip().strip(',').strip()
+                name = re.sub(r'\s*[oO]\s*', ' / ', name)
+                if not name:
+                    continue
+                foods.append({"name": name, "cantidad": qty, "unidad": unit_final})
+            else:
+                food_name = re.sub(r'\s*[oO]\s*', ' / ', item).strip()
+                if food_name.lower() in ("y",):
+                    continue
+                foods.append({"name": food_name, "cantidad": None, "unidad": "g"})
+        if foods:
+            result.append({"tipo": tipo, "foods": foods})
+    return result
+
+
+@router.get("/import", response_class=HTMLResponse)
+async def import_page(
+    request: Request,
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    return templates.TemplateResponse(request, "diet_plans/import.html", {
+        "user": user
+    })
+
+
+@router.post("/import")
+async def import_plan(
+    request: Request,
+    nombre: str = Form(...),
+    texto: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    plan = DietPlan(user_id=user.id, nombre=nombre, descripcion="Importado automáticamente")
+    db.add(plan)
+    await db.flush()
+
+    meals_data = parse_diet_text(texto)
+    for idx, meal_data in enumerate(meals_data):
+        meal = DietPlanMeal(
+            diet_plan_id=plan.id,
+            tipo=meal_data["tipo"],
+            orden=idx,
+        )
+        db.add(meal)
+        await db.flush()
+        for food_data in meal_data["foods"]:
+            food = DietPlanFood(
+                diet_plan_meal_id=meal.id,
+                food_name=food_data["name"],
+                cantidad=food_data["cantidad"],
+                unidad=food_data["unidad"],
+            )
+            db.add(food)
+
+    await db.commit()
+    return RedirectResponse(url=f"/diet-plans/{plan.id}/edit", status_code=302)
 
 
 @router.post("/new")
