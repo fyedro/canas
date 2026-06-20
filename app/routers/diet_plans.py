@@ -100,6 +100,12 @@ def parse_diet_text(text: str):
     if current_tipo and current_content:
         meals_parsed.append((current_tipo, current_content))
 
+    def clean_name(n):
+        n = re.sub(r'\s+[oO]\s+', ' / ', n)
+        n = re.sub(r'\s+', ' ', n).strip().strip(',').strip()
+        n = re.sub(r'^/\s*|\s*/$', '', n).strip()
+        return n
+
     result = []
     for tipo, content in meals_parsed:
         content = re.sub(r'\s*\*\s*', ' ', content)
@@ -110,10 +116,9 @@ def parse_diet_text(text: str):
             item = item.strip()
             if not item or item.lower() in ("", "y"):
                 continue
-            qty_match = re.search(
-                r'(\d+(?:[.,]\d+)?)\s*(gramos|g|gr|ml|unidad|unidades|cucharada|cucharadas|taza|tazas|kg|litro|l)\s*(?:de\s+)?',
-                item, re.IGNORECASE
-            )
+
+            qty_re = r'(\d+(?:[.,]\d+)?)\s*(gramos|g|gr|ml|unidad|unidades|cucharada|cucharadas|taza|tazas|kg|litro|l)\s+(?:de\s+)?'
+            qty_match = re.search(qty_re, item, re.IGNORECASE)
             if qty_match:
                 qty_str = qty_match.group(1).replace(",", ".")
                 qty = float(qty_str)
@@ -125,16 +130,23 @@ def parse_diet_text(text: str):
                 qty = qty * 1000 if unit == "kg" else qty
                 unit_final = unit_map.get(unit, "g")
                 name = item[:qty_match.start()] + item[qty_match.end():]
-                name = re.sub(r'\s+', ' ', name).strip().strip(',').strip()
-                name = re.sub(r'\s*[oO]\s*', ' / ', name)
+                name = clean_name(name)
                 if not name:
                     continue
                 foods.append({"name": name, "cantidad": qty, "unidad": unit_final})
             else:
-                food_name = re.sub(r'\s*[oO]\s*', ' / ', item).strip()
-                if food_name.lower() in ("y",):
-                    continue
-                foods.append({"name": food_name, "cantidad": None, "unidad": "g"})
+                simple_qty = re.match(r'(\d+(?:[.,]\d+)?)\s+(.*)', item)
+                if simple_qty:
+                    qty = float(simple_qty.group(1).replace(",", "."))
+                    name = clean_name(simple_qty.group(2))
+                    if not name:
+                        continue
+                    foods.append({"name": name, "cantidad": qty, "unidad": "unidad"})
+                else:
+                    name = clean_name(item)
+                    if not name or name.lower() in ("y",):
+                        continue
+                    foods.append({"name": name, "cantidad": None, "unidad": "g"})
         if foods:
             result.append({"tipo": tipo, "foods": foods})
     return result
