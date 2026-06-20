@@ -1,4 +1,5 @@
 import re
+import httpx
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -319,6 +320,54 @@ async def add_food_to_meal(
         notas=notas or None,
     )
     db.add(food)
+    await db.commit()
+    return RedirectResponse(url=f"/diet-plans/{plan_id}/edit", status_code=302)
+
+
+@router.post("/{plan_id}/meals/{meal_id}/foods/{food_id}/lookup")
+async def lookup_food_macros(
+    plan_id: int,
+    meal_id: int,
+    food_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(select(DietPlanFood).where(DietPlanFood.id == food_id))
+    food = result.scalar_one_or_none()
+    if not food:
+        raise HTTPException(status_code=404, detail="Alimento no encontrado")
+
+    search_name = food.food_name.split(" / ")[0].strip().lower()
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                "https://world.openfoodfacts.org/cgi/search.pl",
+                params={
+                    "search_terms": search_name,
+                    "search_simple": 1,
+                    "action": "process",
+                    "json": 1,
+                    "page_size": 3,
+                    "lang": "es",
+                },
+                timeout=10,
+            )
+            data = resp.json()
+            for p in data.get("products", []):
+                nut = p.get("nutriments", {})
+                cal = nut.get("energy-kcal_100g")
+                if cal and cal > 0:
+                    food.calorias = cal
+                    food.proteinas = nut.get("proteins_100g")
+                    food.carbs = nut.get("carbohydrates_100g")
+                    food.grasas = nut.get("fat_100g")
+                    break
+        except Exception:
+            pass
+
     await db.commit()
     return RedirectResponse(url=f"/diet-plans/{plan_id}/edit", status_code=302)
 

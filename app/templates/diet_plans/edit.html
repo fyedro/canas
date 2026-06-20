@@ -85,7 +85,15 @@
                             <small class="text-muted"> · <em>{{ food.notas }}</em></small>
                             {% endif %}
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            {% if not food.calorias or food.calorias == 0 %}
+                            <form method="post" action="/diet-plans/{{ plan.id }}/meals/{{ meal.id }}/foods/{{ food.id }}/lookup"
+                                  style="display:inline">
+                                <button type="submit" class="btn btn-outline-info btn-sm py-0 px-1" title="Buscar macros">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </form>
+                            {% endif %}
                             <small class="text-muted">
                                 {% if food.calorias %}{{ "%.0f"|format(food.calorias * (food.cantidad or 100) / 100) }} kcal{% endif %}
                             </small>
