@@ -13,8 +13,9 @@
     {% if user %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-bold text-warning" href="/dashboard">
+            <a class="navbar-brand fw-bold text-warning" href="/dashboard" title="Calorías, Abdominales, Ñam, Actividad y Salud">
                 <i class="bi bi-fire"></i> CAÑAS
+                <small class="d-none d-md-inline text-light-emphasis" style="font-size:0.55rem;opacity:0.6"> Calorías · Abdominales · Ñam · Actividad · Salud</small>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -24,20 +25,26 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/dashboard"><i class="bi bi-house"></i> Inicio</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/routines"><i class="bi bi-list-check"></i> Rutinas</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-activity"></i> Entrenamiento
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/routines"><i class="bi bi-list-check"></i> Rutinas</a></li>
+                            <li><a class="dropdown-item" href="/workout"><i class="bi bi-lightning"></i> Entrenar</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-egg-fried"></i> Dieta
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/diet"><i class="bi bi-journal"></i> Diario</a></li>
+                            <li><a class="dropdown-item" href="/diet-plans"><i class="bi bi-calendar-week"></i> Planes</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/workout"><i class="bi bi-activity"></i> Entrenar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/diet"><i class="bi bi-egg-fried"></i> Dieta</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/diet-plans"><i class="bi bi-calendar-week"></i> Planes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/progress"><i class="bi bi-graph-up"></i> Progreso</a>
+                        <a class="nav-link" href="/progress"><i class="bi bi-graph-up"></i> Peso</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">

@@ -29,18 +29,9 @@ async def progress_page(
     )
     measurements = result.scalars().all()
 
-    result = await db.execute(
-        select(Workout)
-        .where(Workout.user_id == user.id)
-        .order_by(Workout.fecha.desc())
-        .limit(30)
-    )
-    recent_workouts = result.scalars().all()
-
     return templates.TemplateResponse(request, "progress/index.html", {
         "user": user,
         "measurements": list(reversed(measurements)),
-        "recent_workouts": recent_workouts,
     })
 
 
@@ -48,13 +39,7 @@ async def progress_page(
 async def add_measurement(
     request: Request,
     fecha: str = Form(""),
-    peso: float = Form(0),
-    brazo: float = Form(0),
-    cintura: float = Form(0),
-    pecho: float = Form(0),
-    cadera: float = Form(0),
-    pierna: float = Form(0),
-    notas: str = Form(""),
+    peso: float = Form(None),
     db: AsyncSession = Depends(get_db),
     user: UserProfile = Depends(get_current_user),
 ):
@@ -73,22 +58,10 @@ async def add_measurement(
 
     if existing:
         if peso: existing.peso = peso
-        if brazo: existing.brazo = brazo
-        if cintura: existing.cintura = cintura
-        if pecho: existing.pecho = pecho
-        if cadera: existing.cadera = cadera
-        if pierna: existing.pierna = pierna
-        if notas: existing.notas = notas
     else:
         bm = BodyMeasurement(
             user_id=user.id, fecha=today,
             peso=peso or None,
-            brazo=brazo or None,
-            cintura=cintura or None,
-            pecho=pecho or None,
-            cadera=cadera or None,
-            pierna=pierna or None,
-            notas=notas or None,
         )
         db.add(bm)
 

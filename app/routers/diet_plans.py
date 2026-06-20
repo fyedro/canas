@@ -384,6 +384,60 @@ async def lookup_food_macros(
     return RedirectResponse(url=f"/diet-plans/{plan_id}/edit", status_code=302)
 
 
+@router.post("/{plan_id}/auto-macros")
+async def auto_macros(
+    plan_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(DietPlan)
+        .where(DietPlan.id == plan_id, DietPlan.user_id == user.id)
+        .options(selectinload(DietPlan.meals).selectinload(DietPlanMeal.foods))
+    )
+    plan = result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+
+    async with httpx.AsyncClient() as client:
+        for meal in plan.meals:
+            for food in meal.foods:
+                if food.calorias and food.calorias > 0:
+                    continue
+                search_name = re.sub(r'\s*/\s*.*', '', food.food_name).strip().lower()
+                try:
+                    resp = await client.get(
+                        "https://world.openfoodfacts.org/cgi/search.pl",
+                        params={
+                            "search_terms": search_name,
+                            "search_simple": 1,
+                            "action": "process",
+                            "json": 1,
+                            "page_size": 3,
+                            "lang": "es",
+                        },
+                        timeout=10,
+                    )
+                    data = resp.json()
+                    for p in data.get("products", []):
+                        nut = p.get("nutriments", {})
+                        cal = nut.get("energy-kcal_100g")
+                        if cal and cal > 0:
+                            food.calorias = cal
+                            food.proteinas = nut.get("proteins_100g")
+                            food.carbs = nut.get("carbohydrates_100g")
+                            food.grasas = nut.get("fat_100g")
+                            break
+                except Exception:
+                    pass
+
+    await db.commit()
+    return RedirectResponse(url=f"/diet-plans/{plan_id}/edit", status_code=302)
+
+
 @router.post("/{plan_id}/meals/{meal_id}/delete-food/{food_id}")
 async def delete_food(
     plan_id: int,
