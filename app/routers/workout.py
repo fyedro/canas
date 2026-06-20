@@ -167,6 +167,24 @@ async def finish_workout(
     return RedirectResponse(url=f"/workout/{workout_id}", status_code=302)
 
 
+@router.post("/{workout_id}/delete")
+async def delete_workout(
+    workout_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    result = await db.execute(
+        select(Workout).where(Workout.id == workout_id, Workout.user_id == user.id)
+    )
+    workout = result.scalar_one_or_none()
+    if workout:
+        await db.delete(workout)
+    await db.commit()
+    return RedirectResponse(url="/workout", status_code=302)
+
+
 @router.get("/{workout_id}", response_class=HTMLResponse)
 async def workout_detail(
     request: Request,

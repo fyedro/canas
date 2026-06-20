@@ -2,8 +2,16 @@
 {% block title %}{{ workout.nombre }}{% endblock %}
 {% block content %}
 <div class="mb-4">
-    <a href="/workout" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Historial</a>
-    <h2>{{ workout.nombre }}</h2>
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <a href="/workout" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Historial</a>
+            <h2>{{ workout.nombre }}</h2>
+        </div>
+        <form method="post" action="/workout/{{ workout.id }}/delete" style="display:inline"
+              onsubmit="return confirm('¿Eliminar este entrenamiento?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+        </form>
+    </div>
     <p class="text-muted">
         {{ workout.fecha.strftime("%d %b %Y") }}
         {% if workout.duracion %} · {{ workout.duracion }} minutos{% endif %}

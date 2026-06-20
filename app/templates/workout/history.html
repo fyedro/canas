@@ -6,19 +6,25 @@
 {% if workouts %}
 <div class="list-group mt-3">
     {% for w in workouts %}
-    <a href="/workout/{{ w.id }}" class="list-group-item list-group-item-action">
-        <div class="d-flex justify-content-between">
-            <div>
-                <strong>{{ w.nombre }}</strong>
-                <small class="text-muted d-block">{{ w.fecha.strftime("%d %b %Y") }}</small>
+    <div class="list-group-item d-flex align-items-center">
+        <a href="/workout/{{ w.id }}" class="flex-grow-1 text-decoration-none">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>{{ w.nombre }}</strong>
+                    <small class="text-muted d-block">{{ w.fecha.strftime("%d %b %Y") }}</small>
+                </div>
+                <div class="text-end">
+                    {% if w.duracion %}
+                    <span class="badge bg-secondary">{{ w.duracion }} min</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="text-end">
-                {% if w.duracion %}
-                <span class="badge bg-secondary">{{ w.duracion }} min</span>
-                {% endif %}
-            </div>
-        </div>
-    </a>
+        </a>
+        <form method="post" action="/workout/{{ w.id }}/delete" style="display:inline" class="ms-2"
+              onsubmit="return confirm('¿Eliminar este entrenamiento?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+        </form>
+    </div>
     {% endfor %}
 </div>
 {% else %}

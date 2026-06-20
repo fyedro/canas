@@ -7,7 +7,6 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Routine, RoutineExercise, Exercise, UserProfile
 from app.auth import get_current_user
-import httpx
 
 router = APIRouter(prefix="/routines", tags=["routines"])
 templates = Jinja2Templates(directory="app/templates")
@@ -57,33 +56,6 @@ async def exercise_library(
     exercises = result.scalars().all()
 
     grupos = ["Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps", "Piernas", "Glúteos", "Abdomen", "Cardio"]
-
-    # Try to get images from wger for exercises missing them
-    async with httpx.AsyncClient() as client:
-        for ex in exercises:
-            if ex.image_url:
-                continue
-            try:
-                resp = await client.get(
-                    "https://wger.de/api/v2/exercise/",
-                    params={"search": ex.name, "language": 4, "limit": 3},
-                    timeout=5,
-                )
-                data = resp.json()
-                for wger_ex in data.get("results", []):
-                    img_resp = await client.get(
-                        "https://wger.de/api/v2/exerciseimage/",
-                        params={"exercise": wger_ex["id"], "limit": 1},
-                        timeout=5,
-                    )
-                    img_data = img_resp.json()
-                    if img_data.get("results"):
-                        ex.image_url = img_data["results"][0]["image"]
-                        ex.wger_id = wger_ex["id"]
-                        break
-            except Exception:
-                pass
-    await db.commit()
 
     return templates.TemplateResponse(request, "routines/exercises.html", {
         "user": user, "exercises": exercises,
