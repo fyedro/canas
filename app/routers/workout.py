@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Workout, WorkoutSet, Routine, RoutineExercise, UserProfile
@@ -117,9 +117,27 @@ async def save_set(
         set_number=data["set_number"],
         weight=data.get("weight"),
         reps=data.get("reps"),
-        rpe=data.get("rpe"),
+        completed=data.get("completed", True),
     )
     db.add(ws)
+    await db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/active/{workout_id}/delete-set/{set_id}")
+async def delete_set(
+    workout_id: int,
+    set_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return {"error": "Not authenticated"}
+    await db.execute(
+        delete(WorkoutSet).where(
+            WorkoutSet.id == set_id, WorkoutSet.workout_id == workout_id
+        )
+    )
     await db.commit()
     return {"status": "ok"}
 
