@@ -431,9 +431,12 @@ async def delete_plan(
 ):
     if not user:
         return RedirectResponse(url="/auth/login")
-    await db.execute(
-        delete(DietPlan).where(DietPlan.id == plan_id, DietPlan.user_id == user.id)
+    result = await db.execute(
+        select(DietPlan).where(DietPlan.id == plan_id, DietPlan.user_id == user.id)
     )
+    plan = result.scalar_one_or_none()
+    if plan:
+        await db.delete(plan)
     await db.commit()
     return RedirectResponse(url="/diet-plans", status_code=302)
 
