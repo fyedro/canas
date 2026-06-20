@@ -5,6 +5,7 @@
     <div>
         <a href="/diet-plans" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Volver</a>
         <h4><i class="bi bi-calendar-week"></i> {{ plan.nombre }}</h4>
+        <small class="text-muted">Creado {{ plan.created_at.strftime("%d/%m/%Y") }}</small>
     </div>
     <form method="post" action="/diet-plans/{{ plan.id }}/assign-week">
         <button type="submit" class="btn btn-warning"><i class="bi bi-check-all"></i> Asignar a toda la semana</button>
@@ -13,6 +14,10 @@
 
 <div class="row g-2">
     {% for day in day_meals %}
+    {% set day_cal = namespace(v=0) %}
+    {% set day_pro = namespace(v=0) %}
+    {% set day_carbs = namespace(v=0) %}
+    {% set day_gras = namespace(v=0) %}
     <div class="col-md-6 col-lg-4 col-xl mb-3" style="min-width:280px;">
         <div class="card h-100 {% if day.date == week_days[0] %}border-warning{% endif %}">
             <div class="card-header py-2">
@@ -21,21 +26,47 @@
             </div>
             <div class="card-body py-2">
                 {% for meal in day.meals %}
+                {% set meal_cal = namespace(v=0) %}
+                {% set meal_pro = namespace(v=0) %}
+                {% set meal_carbs = namespace(v=0) %}
+                {% set meal_gras = namespace(v=0) %}
                 <div class="mb-2">
                     <small class="fw-bold text-warning">{{ meal.tipo }}</small>
                     <ul class="list-unstyled mb-0 ps-2">
                         {% for food in meal.foods %}
-                        <li class="small">
-                            {{ food.name }}
-                            {% if food.cantidad %}
-                            <span class="text-muted">({{ "%.0f"|format(food.cantidad) }}{{ food.unidad }})</span>
+                        {% set factor = (food.cantidad or 100) / 100 %}
+                        {% set cal = (food.calorias or 0) * factor %}
+                        {% set pro = (food.proteinas or 0) * factor %}
+                        {% set carb = (food.carbs or 0) * factor %}
+                        {% set gras = (food.grasas or 0) * factor %}
+                        {% set meal_cal.v = meal_cal.v + cal %}
+                        {% set meal_pro.v = meal_pro.v + pro %}
+                        {% set meal_carbs.v = meal_carbs.v + carb %}
+                        {% set meal_gras.v = meal_gras.v + gras %}
+                        {% set day_cal.v = day_cal.v + cal %}
+                        {% set day_pro.v = day_pro.v + pro %}
+                        {% set day_carbs.v = day_carbs.v + carb %}
+                        {% set day_gras.v = day_gras.v + gras %}
+                        <li class="small d-flex justify-content-between">
+                            <span>{{ food.name }}{% if food.cantidad %} <span class="text-muted">({{ "%.0f"|format(food.cantidad) }}{{ food.unidad }})</span>{% endif %}</span>
+                            {% if food.calorias %}
+                            <small class="text-muted ms-1">{{ "%.0f"|format(cal) }} kcal</small>
                             {% endif %}
                         </li>
                         {% endfor %}
                     </ul>
+                    {% if meal_cal.v > 0 %}
+                    <small class="text-muted d-block text-end small">{{ "%.0f"|format(meal_cal.v) }} kcal · P: {{ "%.0f"|format(meal_pro.v) }}g · C: {{ "%.0f"|format(meal_carbs.v) }}g · G: {{ "%.0f"|format(meal_gras.v) }}g</small>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
+            {% if day_cal.v > 0 %}
+            <div class="card-footer py-1 text-center">
+                <small class="fw-bold">{{ "%.0f"|format(day_cal.v) }} kcal</small>
+                <small class="text-muted"> · P: {{ "%.0f"|format(day_pro.v) }}g · C: {{ "%.0f"|format(day_carbs.v) }}g · G: {{ "%.0f"|format(day_gras.v) }}g</small>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

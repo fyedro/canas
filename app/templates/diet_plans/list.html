@@ -61,7 +61,7 @@
                 <p class="card-text text-muted small">{{ plan.descripcion }}</p>
                 {% endif %}
                 <p class="card-text small text-muted">
-                    {{ plan.meals|length }} comidas
+                    {{ plan.meals|length }} comidas · {{ plan.created_at.strftime("%d/%m/%Y") }}
                 </p>
                 <div class="d-flex gap-1">
                     <a href="/diet-plans/{{ plan.id }}" class="btn btn-outline-primary btn-sm flex-grow-1">Ver</a>

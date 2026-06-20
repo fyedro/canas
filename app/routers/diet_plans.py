@@ -516,6 +516,10 @@ async def week_view(
                     "name": chosen,
                     "cantidad": food.cantidad,
                     "unidad": food.unidad,
+                    "calorias": food.calorias,
+                    "proteinas": food.proteinas,
+                    "carbs": food.carbs,
+                    "grasas": food.grasas,
                 })
             meals_for_day.append({"tipo": meal.tipo, "foods": foods_for_day})
         day_meals.append({"day_num": i + 1, "day_es": days_es[i], "date": day, "meals": meals_for_day})
