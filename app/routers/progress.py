@@ -10,8 +10,13 @@ from app.models import BodyMeasurement, UserProfile, Workout
 from app.auth import get_current_user
 from datetime import date
 from PIL import Image
-import pytesseract
-pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
+
+try:
+    import pytesseract
+    pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
+    OCR_AVAILABLE = True
+except Exception:
+    OCR_AVAILABLE = False
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 templates = Jinja2Templates(directory="app/templates")
@@ -47,10 +52,11 @@ async def ocr_scale_image(
 ):
     if not user:
         return JSONResponse({"error": "No autorizado"}, status_code=401)
+    if not OCR_AVAILABLE:
+        return JSONResponse({"error": "OCR no disponible en el servidor"}, status_code=501)
 
     contents = await file.read()
     img = Image.open(io.BytesIO(contents))
-    # Convert to grayscale for better OCR
     img = img.convert("L")
     text = pytesseract.image_to_string(img, lang="spa+eng")
     lines = [l.strip() for l in text.strip().split("\n") if l.strip()]
