@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.food_name }}{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <a href="/recipes" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Recetas</a>
+    <a href="/foods" class="btn btn-outline-secondary btn-sm"><i class="bi bi-basket"></i> Alimentos</a>
+    <a href="/foods/{{ recipe.id }}/edit" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+    <form method="post" action="/foods/{{ recipe.id }}/delete" style="display:inline"
+          onsubmit="return confirm('¿Eliminar la receta {{ recipe.food_name }}?')">
+        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Eliminar</button>
+    </form>
+</div>
+
+<div class="card bg-dark border-secondary mb-4">
+    {% if recipe.imagen_url %}
+    <img src="{{ recipe.imagen_url }}" class="card-img-top" alt="{{ recipe.food_name }}"
+         style="max-height:300px;object-fit:contain;background:#111;padding:1rem;">
+    {% endif %}
+    <div class="card-body">
+        <h3>{{ recipe.food_name }}</h3>
+        {% if recipe.grupo %}
+        <span class="badge bg-warning mb-3">{{ recipe.grupo }}</span>
+        {% endif %}
+
+        <div class="row g-2 mb-4">
+            <div class="col-3 col-md-2 text-center">
+                <div class="bg-dark p-2 rounded border border-secondary">
+                    <small class="text-muted d-block">Cal</small>
+                    <strong>{{ "%.0f"|format(recipe.calorias or 0) }}</strong>
+                </div>
+            </div>
+            <div class="col-3 col-md-2 text-center">
+                <div class="bg-dark p-2 rounded border border-secondary">
+                    <small class="text-muted d-block">Proteínas</small>
+                    <strong>{{ "%.1f"|format(recipe.proteinas or 0) }}g</strong>
+                </div>
+            </div>
+            <div class="col-3 col-md-2 text-center">
+                <div class="bg-dark p-2 rounded border border-secondary">
+                    <small class="text-muted d-block">H. Carbono</small>
+                    <strong>{{ "%.1f"|format(recipe.carbs or 0) }}g</strong>
+                </div>
+            </div>
+            <div class="col-3 col-md-2 text-center">
+                <div class="bg-dark p-2 rounded border border-secondary">
+                    <small class="text-muted d-block">Grasas</small>
+                    <strong>{{ "%.1f"|format(recipe.grasas or 0) }}g</strong>
+                </div>
+            </div>
+        </div>
+        <small class="text-muted">Valores por 100g · Peso total: {{ "%.0f"|format(total_weight) }}g</small>
+
+        <h5 class="mt-4">Ingredientes</h5>
+        <table class="table table-dark table-sm">
+            <thead>
+                <tr>
+                    <th>Ingrediente</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Cal</th>
+                    <th class="text-end">P</th>
+                    <th class="text-end">HC</th>
+                    <th class="text-end">G</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ri in recipe.recipe_ingredients %}
+                {% set factor = ri.cantidad / 100 %}
+                <tr>
+                    <td>{{ ri.ingredient.food_name }}</td>
+                    <td class="text-end">{{ "%.0f"|format(ri.cantidad) }}g</td>
+                    <td class="text-end">{{ "%.0f"|format((ri.ingredient.calorias or 0) * factor) }}</td>
+                    <td class="text-end">{{ "%.1f"|format((ri.ingredient.proteinas or 0) * factor) }}</td>
+                    <td class="text-end">{{ "%.1f"|format((ri.ingredient.carbs or 0) * factor) }}</td>
+                    <td class="text-end">{{ "%.1f"|format((ri.ingredient.grasas or 0) * factor) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if recipe.instrucciones %}
+        <h5 class="mt-4">Instrucciones</h5>
+        <div class="text-light">{{ recipe.instrucciones | safe }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

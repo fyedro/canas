@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ food.food_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-pencil"></i> Editar {{ food.food_name }}</h4>
+                <form method="post" id="foodForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" name="food_name" class="form-control" value="{{ food.food_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo</label>
+                        <select name="grupo" class="form-select">
+                            <option value="">Sin grupo</option>
+                            {% for g in food_groups %}
+                            <option value="{{ g }}" {% if food.grupo == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if food.recipe_ingredients %}
+                    {# --- Es una receta: mostrar ingredientes --- #}
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Calorías</label>
+                            <input type="number" name="calorias" class="form-control" step="0.1"
+                                   value="{{ food.calorias or 0 }}" id="calorias">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Proteínas (g)</label>
+                            <input type="number" name="proteinas" class="form-control" step="0.1"
+                                   value="{{ food.proteinas or 0 }}" id="proteinas">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">H. Carbono (g)</label>
+                            <input type="number" name="carbs" class="form-control" step="0.1"
+                                   value="{{ food.carbs or 0 }}" id="carbs">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Grasas (g)</label>
+                            <input type="number" name="grasas" class="form-control" step="0.1"
+                                   value="{{ food.grasas or 0 }}" id="grasas">
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h5><i class="bi bi-basket"></i> Ingredientes</h5>
+                    <p class="text-muted small">Los macros se recalcularán automáticamente.</p>
+
+                    <div id="ingredients">
+                        {% for ri in food.recipe_ingredients %}
+                        <div class="row g-1 mb-1 ingredient-row">
+                            <div class="col-6">
+                                <select name="ingredient_id" class="form-select form-select-sm">
+                                    <option value="">Seleccionar...</option>
+                                    {% for c in catalog %}
+                                    <option value="{{ c.id }}" {% if ri.ingredient_id == c.id %}selected{% endif %}>{{ c.food_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <input type="number" name="ingredient_qty" class="form-control form-control-sm"
+                                       placeholder="gramos" step="1" value="{{ ri.cantidad }}">
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient">&times;</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-info btn-sm mb-3" id="addIngredient">
+                        <i class="bi bi-plus-lg"></i> Añadir ingrediente
+                    </button>
+
+                    <div id="calculated" class="alert alert-info">
+                        <strong>Macros calculados (por 100g):</strong>
+                        <span id="calcCal">{{ "%.0f"|format(food.calorias or 0) }}</span> kcal ·
+                        P: <span id="calcPro">{{ "%.1f"|format(food.proteinas or 0) }}</span>g ·
+                        HC: <span id="calcCarbs">{{ "%.1f"|format(food.carbs or 0) }}</span>g ·
+                        G: <span id="calcGras">{{ "%.1f"|format(food.grasas or 0) }}</span>g
+                    </div>
+
+                    <hr>
+                    <h5><i class="bi bi-chat-dots"></i> Instrucciones</h5>
+                    <div class="mb-3">
+                        <textarea name="instrucciones" class="form-control" rows="4"
+                                  placeholder="Explica cómo preparar esta receta...">{{ food.instrucciones or "" }}</textarea>
+                    </div>
+                    {% else %}
+                    {# --- Es un alimento simple --- #}
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Calorías</label>
+                            <input type="number" name="calorias" class="form-control" step="0.1"
+                                   value="{{ food.calorias or 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Proteínas (g)</label>
+                            <input type="number" name="proteinas" class="form-control" step="0.1"
+                                   value="{{ food.proteinas or 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">H. Carbono (g)</label>
+                            <input type="number" name="carbs" class="form-control" step="0.1"
+                                   value="{{ food.carbs or 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Grasas (g)</label>
+                            <input type="number" name="grasas" class="form-control" step="0.1"
+                                   value="{{ food.grasas or 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Porción habitual (g)</label>
+                            <input type="number" name="porcion" class="form-control" step="1"
+                                   value="{{ food.porcion or '' }}" placeholder="Opcional">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-warning w-100">Guardar</button>
+                    <a href="/foods" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if food.recipe_ingredients %}
+<script>
+document.getElementById('addIngredient').addEventListener('click', function() {
+    const row = document.querySelector('.ingredient-row').cloneNode(true);
+    row.querySelector('.remove-ingredient').style.display = 'inline';
+    row.querySelectorAll('input, select').forEach(el => el.value = '');
+    document.getElementById('ingredients').appendChild(row);
+});
+
+document.getElementById('ingredients').addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-ingredient')) {
+        e.target.closest('.ingredient-row').remove();
+        calculateRecipe();
+    }
+});
+
+document.getElementById('ingredients').addEventListener('change', calculateRecipe);
+document.getElementById('ingredients').addEventListener('input', calculateRecipe);
+
+const catalogData = {
+    {% for c in catalog %}
+    {{ c.id }}: { calorias: {{ c.calorias or 0 }}, proteinas: {{ c.proteinas or 0 }}, carbs: {{ c.carbs or 0 }}, grasas: {{ c.grasas or 0 }} },
+    {% endfor %}
+};
+
+function calculateRecipe() {
+    const rows = document.querySelectorAll('.ingredient-row');
+    let totalCal = 0, totalPro = 0, totalCarbs = 0, totalGras = 0, totalWeight = 0;
+
+    rows.forEach(row => {
+        const sel = row.querySelector('select[name="ingredient_id"]');
+        const qtyInput = row.querySelector('input[name="ingredient_qty"]');
+        const id = parseInt(sel.value);
+        const qty = parseFloat(qtyInput.value) || 0;
+        if (id && qty > 0 && catalogData[id]) {
+            const factor = qty / 100;
+            totalCal += catalogData[id].calorias * factor;
+            totalPro += catalogData[id].proteinas * factor;
+            totalCarbs += catalogData[id].carbs * factor;
+            totalGras += catalogData[id].grasas * factor;
+            totalWeight += qty;
+        }
+    });
+
+    const div = document.getElementById('calculated');
+    if (totalWeight > 0) {
+        const per100 = w => (w / totalWeight * 100).toFixed(1);
+        document.getElementById('calcCal').textContent = per100(totalCal);
+        document.getElementById('calcPro').textContent = per100(totalPro);
+        document.getElementById('calcCarbs').textContent = per100(totalCarbs);
+        document.getElementById('calcGras').textContent = per100(totalGras);
+
+        document.getElementById('calorias').value = per100(totalCal);
+        document.getElementById('proteinas').value = per100(totalPro);
+        document.getElementById('carbs').value = per100(totalCarbs);
+        document.getElementById('grasas').value = per100(totalGras);
+    }
+}
+}
+</script>
+{% endif %}
+{% endblock %}

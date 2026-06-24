@@ -4,11 +4,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
+engine_kwargs = {"echo": settings.debug}
 if settings.raw_database_url:
-    engine = create_async_engine(settings.database_url, echo=settings.debug)
+    engine_kwargs["pool_recycle"] = 300
+    engine_kwargs["pool_pre_ping"] = True
+    engine = create_async_engine(settings.database_url, **engine_kwargs)
 else:
     sqlite_path = os.getenv("SQLITE_PATH", "./canas.db")
-    engine = create_async_engine(f"sqlite+aiosqlite:///{sqlite_path}", echo=settings.debug)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{sqlite_path}", **engine_kwargs)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -34,6 +37,18 @@ NEW_COLUMNS = {
         "imc FLOAT",
         "grasa_visceral FLOAT",
         "metabolismo_basal FLOAT",
+        "grasa_subcutanea FLOAT",
+        "proteina FLOAT",
+        "masa_muscular_kg FLOAT",
+        "edad_corporal FLOAT",
+    ],
+    "exercises": [
+        "target_muscles TEXT",
+        "equipment VARCHAR(200)",
+    ],
+    "food_catalog": [
+        "grupo VARCHAR(50)",
+        "instrucciones TEXT",
     ]
 }
 

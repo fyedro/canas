@@ -45,6 +45,7 @@ class UserProfile(Base):
     nutrition_goals = relationship("DailyNutrition", back_populates="user", cascade="all, delete-orphan")
     diet_plans = relationship("DietPlan", back_populates="user", cascade="all, delete-orphan")
     diet_assignments = relationship("DietPlanAssignment", back_populates="user", cascade="all, delete-orphan")
+    foods_catalog = relationship("FoodCatalog", back_populates="user", cascade="all, delete-orphan")
 
 
 class Exercise(Base):
@@ -56,6 +57,8 @@ class Exercise(Base):
     muscle_group = Column(String(50), nullable=True)
     category = Column(String(50), nullable=True)
     description = Column(Text, nullable=True)
+    target_muscles = Column(Text, nullable=True)
+    equipment = Column(String(200), nullable=True)
     image_url = Column(String(500), nullable=True)
     image_url_secondary = Column(String(500), nullable=True)
     wger_id = Column(Integer, unique=True, nullable=True)
@@ -173,6 +176,53 @@ class FoodItem(Base):
     meal = relationship("Meal", back_populates="foods")
 
 
+FOOD_GROUPS = [
+    "Lácteos", "Huevos", "Carnes", "Pescados", "Legumbres",
+    "Cereales", "Fruta", "Verdura", "Frutos secos", "Aceites",
+    "Bebidas", "Condimentos", "Otros",
+]
+
+
+class FoodCatalog(Base):
+    __tablename__ = "food_catalog"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("user_profiles.id"), nullable=False)
+    food_name = Column(String(300), nullable=False)
+    grupo = Column(String(50), nullable=True)
+    calorias = Column(Float, nullable=True)
+    proteinas = Column(Float, nullable=True)
+    carbs = Column(Float, nullable=True)
+    grasas = Column(Float, nullable=True)
+    fibra = Column(Float, nullable=True)
+    imagen_url = Column(String(500), nullable=True)
+    barcode = Column(String(50), nullable=True)
+    porcion = Column(Float, nullable=True)
+    unidad = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    instrucciones = Column(Text, nullable=True)
+    user = relationship("UserProfile", back_populates="foods_catalog")
+    recipe_ingredients = relationship(
+        "RecipeIngredient", back_populates="recipe",
+        foreign_keys="RecipeIngredient.recipe_id",
+        cascade="all, delete-orphan",
+    )
+
+
+class RecipeIngredient(Base):
+    __tablename__ = "recipe_ingredients"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    recipe_id = Column(Integer, ForeignKey("food_catalog.id"), nullable=False)
+    ingredient_id = Column(Integer, ForeignKey("food_catalog.id"), nullable=False)
+    cantidad = Column(Float, nullable=False)
+
+    recipe = relationship("FoodCatalog", back_populates="recipe_ingredients",
+                          foreign_keys=[recipe_id])
+    ingredient = relationship("FoodCatalog", foreign_keys=[ingredient_id])
+
+
 class BodyMeasurement(Base):
     __tablename__ = "body_measurements"
 
@@ -187,6 +237,10 @@ class BodyMeasurement(Base):
     imc = Column(Float, nullable=True)
     grasa_visceral = Column(Float, nullable=True)
     metabolismo_basal = Column(Float, nullable=True)
+    grasa_subcutanea = Column(Float, nullable=True)
+    proteina = Column(Float, nullable=True)
+    masa_muscular_kg = Column(Float, nullable=True)
+    edad_corporal = Column(Float, nullable=True)
     notas = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

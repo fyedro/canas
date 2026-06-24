@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
-from app.models import Meal, FoodItem, DailyNutrition, UserProfile, DietPlanAssignment, DietPlan, DietPlanMeal, DietPlanFood
+from app.models import Meal, FoodItem, FoodCatalog, DailyNutrition, UserProfile, DietPlanAssignment, DietPlan, DietPlanMeal, DietPlanFood
 from app.auth import get_current_user
 from datetime import date
 import httpx
@@ -58,7 +58,7 @@ async def diet_page(
     )
     assigned = result.scalar_one_or_none()
 
-    meal_types = ["Desayuno", "Comida", "Cena", "Snack", "Postre", "Bebida"]
+    meal_types = ["Desayuno", "Almuerzo", "Comida", "Merienda", "Cena"]
 
     return templates.TemplateResponse(request, "diet/index.html", {
         "user": user, "meals": meals, "goals": goals,
@@ -121,36 +121,12 @@ async def add_food_page(
     if not meal:
         raise HTTPException(status_code=404, detail="Comida no encontrada")
 
-    foods = []
+    catalog_query = select(FoodCatalog).where(FoodCatalog.user_id == user.id)
     if query:
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(
-                    f"{OFF_BASE}/cgi/search.pl",
-                    params={
-                        "search_terms": query,
-                        "search_simple": 1,
-                        "action": "process",
-                        "json": 1,
-                        "page_size": 20,
-                        "lang": "es",
-                    },
-                    timeout=10,
-                )
-                data = resp.json()
-                for p in data.get("products", []):
-                    nut = p.get("nutriments", {})
-                    foods.append({
-                        "id": p.get("id") or p.get("code", ""),
-                        "name": p.get("product_name", "Sin nombre"),
-                        "image": p.get("image_front_thumb_url", ""),
-                        "calorias": nut.get("energy-kcal_100g", 0),
-                        "proteinas": nut.get("proteins_100g", 0),
-                        "carbs": nut.get("carbohydrates_100g", 0),
-                        "grasas": nut.get("fat_100g", 0),
-                    })
-            except Exception:
-                pass
+        catalog_query = catalog_query.where(FoodCatalog.food_name.ilike(f"%{query}%"))
+    catalog_query = catalog_query.order_by(FoodCatalog.food_name)
+    catalog_result = await db.execute(catalog_query)
+    foods = catalog_result.scalars().all()
 
     return templates.TemplateResponse(request, "diet/add_food.html", {
         "user": user, "meal": meal, "foods": foods, "query": query,
@@ -217,5 +193,26 @@ async def update_goals(
             grasas_objetivo=grasas,
         )
         db.add(goals)
+    await db.commit()
+    return RedirectResponse(url="/diet", status_code=302)
+
+
+@router.post("/food/{food_id}/delete")
+async def delete_food_item(
+    food_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    result = await db.execute(
+        select(FoodItem).where(FoodItem.id == food_id)
+        .join(FoodItem.meal)
+        .where(Meal.user_id == user.id)
+    )
+    food = result.scalar_one_or_none()
+    if not food:
+        raise HTTPException(status_code=404)
+    await db.delete(food)
     await db.commit()
     return RedirectResponse(url="/diet", status_code=302)

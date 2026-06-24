@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -55,11 +56,50 @@ async def exercise_library(
     result = await db.execute(query)
     exercises = result.scalars().all()
 
-    grupos = ["Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps", "Piernas", "Glúteos", "Abdomen", "Cardio"]
+    grupo_rows = (await db.execute(select(Exercise.muscle_group).distinct())).scalars().all()
+    grupos = sorted(set(g for g in grupo_rows if g)) or [
+        "Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps",
+        "Piernas", "Glúteos", "Abdomen", "Cardio", "Cuerpo completo",
+    ]
 
     return templates.TemplateResponse(request, "routines/exercises.html", {
         "user": user, "exercises": exercises,
         "grupos": grupos, "grupo": grupo, "search": search,
+    })
+
+
+@router.get("/exercises/{exercise_id}", response_class=HTMLResponse)
+async def exercise_detail(
+    request: Request,
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(Exercise).where(Exercise.id == exercise_id)
+    )
+    exercise = result.scalar_one_or_none()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Ejercicio no encontrado")
+
+    target_muscles = []
+    equipment_str = ""
+    if exercise.target_muscles:
+        try:
+            parsed = json.loads(exercise.target_muscles)
+            target_muscles = parsed.get("primary", []) + parsed.get("secondary", [])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    equipment_str = exercise.equipment or ""
+
+    return templates.TemplateResponse(request, "routines/exercise_detail.html", {
+        "user": user,
+        "exercise": exercise,
+        "target_muscles": target_muscles,
+        "equipment_str": equipment_str,
     })
 
 

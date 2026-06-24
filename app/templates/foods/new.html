@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Nuevo alimento{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-plus-circle"></i> Nuevo alimento</h4>
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" name="food_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo</label>
+                        <select name="grupo" class="form-select">
+                            <option value="">Sin grupo</option>
+                            {% for g in food_groups %}
+                            <option value="{{ g }}">{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Calorías</label>
+                            <input type="number" name="calorias" class="form-control" step="0.1" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Proteínas (g)</label>
+                            <input type="number" name="proteinas" class="form-control" step="0.1" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Carbohidratos (g)</label>
+                            <input type="number" name="carbs" class="form-control" step="0.1" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Grasas (g)</label>
+                            <input type="number" name="grasas" class="form-control" step="0.1" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Porción habitual (g)</label>
+                            <input type="number" name="porcion" class="form-control" step="1" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Guardar</button>
+                    <a href="/foods" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

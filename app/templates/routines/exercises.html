@@ -25,21 +25,23 @@
 <div class="row g-2">
     {% for ex in exercises %}
     <div class="col-6 col-md-4 col-lg-3">
-        <div class="card h-100">
-            {% if ex.image_url %}
-            <img src="{{ ex.image_url }}" class="card-img-top" alt="{{ ex.name_es or ex.name }}"
-                 style="height:140px;object-fit:cover;background:#1a1a1a;">
-            {% else %}
-            <div class="card-img-top d-flex align-items-center justify-content-center bg-dark"
-                 style="height:140px;">
-                <i class="bi bi-image text-muted" style="font-size:2rem;"></i>
+        <a href="/routines/exercises/{{ ex.id }}" class="text-decoration-none text-white">
+            <div class="card h-100 bg-dark border-secondary">
+                {% if ex.image_url %}
+                <img src="{{ ex.image_url }}" class="card-img-top" alt="{{ ex.name_es or ex.name }}"
+                     style="height:140px;object-fit:cover;background:#1a1a1a;">
+                {% else %}
+                <div class="card-img-top d-flex align-items-center justify-content-center bg-dark"
+                     style="height:140px;">
+                    <i class="bi bi-image text-muted" style="font-size:2rem;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body p-2">
+                    <small class="card-title d-block fw-bold">{{ ex.name_es or ex.name }}</small>
+                    <small class="text-muted">{{ ex.muscle_group }}</small>
+                </div>
             </div>
-            {% endif %}
-            <div class="card-body p-2">
-                <small class="card-title d-block fw-bold">{{ ex.name_es or ex.name }}</small>
-                <small class="text-muted">{{ ex.muscle_group }}</small>
-            </div>
-        </div>
+        </a>
     </div>
     {% else %}
     <div class="col-12">

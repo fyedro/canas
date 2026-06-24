@@ -23,12 +23,24 @@
                             <input type="number" name="grasa_corporal" class="form-control" step="0.1" placeholder="%">
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">% Músculo</label>
+                            <label class="form-label small">% Grasa subcutánea</label>
+                            <input type="number" name="grasa_subcutanea" class="form-control" step="0.1" placeholder="%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">% Músculo (esq.)</label>
                             <input type="number" name="musculo" class="form-control" step="0.1" placeholder="%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Masa muscular (kg)</label>
+                            <input type="number" name="masa_muscular_kg" class="form-control" step="0.1" placeholder="kg">
                         </div>
                         <div class="col-4">
                             <label class="form-label small">% Agua</label>
                             <input type="number" name="agua" class="form-control" step="0.1" placeholder="%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">% Proteína</label>
+                            <input type="number" name="proteina" class="form-control" step="0.1" placeholder="%">
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Hueso (kg)</label>
@@ -42,6 +54,10 @@
                             <label class="form-label small">Grasa visceral</label>
                             <input type="number" name="grasa_visceral" class="form-control" step="0.1" placeholder="nivel">
                         </div>
+                        <div class="col-4">
+                            <label class="form-label small">Edad corporal</label>
+                            <input type="number" name="edad_corporal" class="form-control" step="1" placeholder="años">
+                        </div>
                         <div class="col-6">
                             <label class="form-label small">Metabolismo basal (kcal)</label>
                             <input type="number" name="metabolismo_basal" class="form-control" step="1" placeholder="0">
@@ -49,6 +65,13 @@
                     </div>
                     <button type="submit" class="btn btn-warning w-100">Guardar</button>
                 </form>
+                <hr>
+                <h6><i class="bi bi-camera"></i> O desde imagen de báscula</h6>
+                <input type="file" id="scaleUpload" accept="image/*" class="form-control mb-2">
+                <button type="button" class="btn btn-outline-info w-100" onclick="uploadScaleImage()">
+                    <i class="bi bi-search"></i> Leer valores
+                </button>
+                <div id="ocrStatus" class="small text-muted mt-1"></div>
             </div>
         </div>
     </div>
@@ -78,25 +101,33 @@
                         <th>Fecha</th>
                         <th>Peso</th>
                         <th>%Grasa</th>
-                        <th>%Músculo</th>
+                        <th>%G.Subc</th>
+                        <th>%Músc</th>
+                        <th>M.Musc</th>
                         <th>%Agua</th>
+                        <th>%Prot</th>
                         <th>Hueso</th>
                         <th>IMC</th>
-                        <th>G.Visceral</th>
+                        <th>G.Vis</th>
+                        <th>E.Corp</th>
                         <th>TMB</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for m in reversed(measurements) %}
+                    {% for m in measurements | reverse %}
                     <tr>
                         <td>{{ m.fecha.strftime("%d/%m") }}</td>
                         <td>{{ "%.2f"|format(m.peso) if m.peso else "-" }}</td>
                         <td>{{ "%.1f"|format(m.grasa_corporal) if m.grasa_corporal else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.grasa_subcutanea) if m.grasa_subcutanea else "-" }}</td>
                         <td>{{ "%.1f"|format(m.musculo) if m.musculo else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.masa_muscular_kg) if m.masa_muscular_kg else "-" }}</td>
                         <td>{{ "%.1f"|format(m.agua) if m.agua else "-" }}</td>
+                        <td>{{ "%.1f"|format(m.proteina) if m.proteina else "-" }}</td>
                         <td>{{ "%.2f"|format(m.hueso) if m.hueso else "-" }}</td>
                         <td>{{ "%.1f"|format(m.imc) if m.imc else "-" }}</td>
                         <td>{{ "%.1f"|format(m.grasa_visceral) if m.grasa_visceral else "-" }}</td>
+                        <td>{{ "%.0f"|format(m.edad_corporal) if m.edad_corporal else "-" }}</td>
                         <td>{{ "%.0f"|format(m.metabolismo_basal) if m.metabolismo_basal else "-" }}</td>
                     </tr>
                     {% endfor %}
@@ -110,6 +141,42 @@
 
 {% block extra_scripts %}
 <script>
+function uploadScaleImage() {
+    const input = document.getElementById('scaleUpload');
+    const status = document.getElementById('ocrStatus');
+    if (!input.files.length) { status.textContent = 'Selecciona una imagen primero'; return; }
+
+    status.textContent = 'Procesando...';
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    fetch('/progress/ocr', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { status.textContent = 'Error: ' + data.error; return; }
+            const v = data.values;
+            let filled = [];
+            for (const [field, label] of [
+                ['peso', 'Peso'], ['grasa_corporal', '%Grasa'], ['grasa_subcutanea', '%G.Subc'],
+                ['musculo', '%Músc'], ['masa_muscular_kg', 'M.Musc'],
+                ['agua', '%Agua'], ['proteina', '%Prot'],
+                ['hueso', 'Hueso'], ['imc', 'IMC'],
+                ['grasa_visceral', 'G.Vis'], ['edad_corporal', 'E.Corp'],
+                ['metabolismo_basal', 'TMB']
+            ]) {
+                if (v[field] !== undefined) {
+                    const el = document.querySelector(`input[name="${field}"]`);
+                    if (el) { el.value = v[field]; filled.push(label); }
+                }
+            }
+            status.textContent = '✔ Detectados: ' + (filled.join(', ') || 'ninguno');
+            if (filled.length === 0) {
+                status.innerHTML += '<br><small>Texto OCR: ' + data.lines.join(' | ') + '</small>';
+            }
+        })
+        .catch(e => { status.textContent = 'Error: ' + e.message; });
+}
+
 {% if measurements|length > 1 %}
 const weightCtx = document.getElementById('weightChart').getContext('2d');
 new Chart(weightCtx, {

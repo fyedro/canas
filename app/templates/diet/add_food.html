@@ -2,54 +2,67 @@
 {% block title %}Añadir alimento{% endblock %}
 {% block content %}
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-10 mx-auto">
         <div class="card mb-3">
             <div class="card-body">
-                <h5>Buscar alimento</h5>
+                <h5>Añadir alimento a {{ meal.tipo }}</h5>
                 <form method="get" action="/diet/meal/{{ meal.id }}/add-food">
                     <div class="input-group">
-                        <input type="text" name="query" class="form-control" placeholder="Ej: pollo, arroz, huevo..." value="{{ query }}">
+                        <input type="text" name="query" class="form-control" placeholder="Buscar en tu catálogo..."
+                               value="{{ query }}" autofocus>
                         <button type="submit" class="btn btn-warning">Buscar</button>
                     </div>
                 </form>
-                <small class="text-muted">Datos de Open Food Facts</small>
+                <small class="text-muted">
+                    <a href="/foods" class="text-decoration-none">Ir al catálogo de alimentos</a> para añadir nuevos
+                </small>
             </div>
         </div>
 
         {% if foods %}
-        <div class="list-group">
+        <div class="row g-1">
             {% for food in foods %}
-            <div class="list-group-item">
-                <form method="post" action="/diet/meal/{{ meal.id }}/add-food">
-                    <input type="hidden" name="food_name" value="{{ food.name }}">
-                    <input type="hidden" name="calorias" value="{{ food.calorias }}">
-                    <input type="hidden" name="proteinas" value="{{ food.proteinas }}">
-                    <input type="hidden" name="carbs" value="{{ food.carbs }}">
-                    <input type="hidden" name="grasas" value="{{ food.grasas }}">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        {% if food.image %}
-                        <img src="{{ food.image }}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
-                        {% endif %}
-                        <strong class="flex-grow-1">{{ food.name[:60] }}</strong>
-                    </div>
-                    <div class="row g-1 align-items-end">
-                        <div class="col-3">
-                            <input type="number" name="cantidad" class="form-control form-control-sm" value="100" step="10">
-                            <small class="text-muted">gramos</small>
-                        </div>
-                        <div class="col-9">
-                            <small class="text-muted">
-                                {{ "%.0f"|format(food.calorias) }} kcal · P: {{ "%.1f"|format(food.proteinas) }}g · C: {{ "%.1f"|format(food.carbs) }}g · G: {{ "%.1f"|format(food.grasas) }}g
+            <div class="col-4 col-md-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body p-2">
+                        <form method="post" action="/diet/meal/{{ meal.id }}/add-food">
+                            <input type="hidden" name="food_name" value="{{ food.food_name }}">
+                            <input type="hidden" name="calorias" value="{{ food.calorias or 0 }}">
+                            <input type="hidden" name="proteinas" value="{{ food.proteinas or 0 }}">
+                            <input type="hidden" name="carbs" value="{{ food.carbs or 0 }}">
+                            <input type="hidden" name="grasas" value="{{ food.grasas or 0 }}">
+                            <small class="fw-bold d-block" style="font-size:0.75rem;line-height:1.2;">{{ food.food_name }}</small>
+                            <small class="text-muted d-block" style="font-size:0.65rem;">
+                                {% if food.calorias %}{{ "%.0f"|format(food.calorias) }}kcal{% endif %}
+                                {% if food.proteinas %} · P{{ "%.1f"|format(food.proteinas) }}{% endif %}
+                                {% if food.carbs %} · HC{{ "%.1f"|format(food.carbs) }}{% endif %}
+                                {% if food.grasas %} · G{{ "%.1f"|format(food.grasas) }}{% endif %}
                             </small>
-                        </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <input type="number" name="cantidad" class="form-control" value="100" step="10"
+                                       style="font-size:0.7rem;">
+                                <button type="submit" class="btn btn-success" style="font-size:0.7rem;">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <button type="submit" class="btn btn-success btn-sm w-100 mt-2">Añadir</button>
-                </form>
+                </div>
             </div>
             {% endfor %}
         </div>
         {% elif query %}
-        <p class="text-muted">No se encontraron alimentos para "{{ query }}"</p>
+        <p class="text-muted">No hay alimentos en tu catálogo para "{{ query }}"</p>
+        <a href="/foods?search={{ query }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-search"></i> Buscar "{{ query }}" en Open Food Facts
+        </a>
+        {% endif %}
+
+        {% if not query and not foods %}
+        <div class="text-center py-4 text-muted">
+            <p>Tu catálogo de alimentos está vacío.</p>
+            <a href="/foods" class="btn btn-warning">Ir al catálogo</a>
+        </div>
         {% endif %}
     </div>
 </div>

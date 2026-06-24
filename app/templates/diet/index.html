@@ -122,7 +122,15 @@
                     <strong>{{ food.food_name }}</strong>
                     <small class="text-muted"> ({{ "%.0f"|format(food.cantidad) }}g)</small>
                 </div>
-                <small>{{ "%.0f"|format(food.calorias * food.cantidad / 100) }} kcal</small>
+                <div class="d-flex align-items-center gap-2">
+                    <small>{{ "%.0f"|format(food.calorias * food.cantidad / 100) }} kcal</small>
+                    <form method="post" action="/diet/food/{{ food.id }}/delete" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger p-0 border-0"
+                                onclick="return confirm('¿Quitar {{ food.food_name }}?')">
+                            <i class="bi bi-x-circle text-danger"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
             {% endfor %}
             {% set meal_totals = namespace(cal=0, pro=0, carbs=0, gras=0) %}

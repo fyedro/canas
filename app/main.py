@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db, init_db, async_session
 from app.auth import router as auth_router, get_current_user
-from app.routers import routines, diet, progress, workout, diet_plans
+from app.routers import routines, diet, progress, workout, diet_plans, foods, recipes
 from app.config import settings
 from app.models import Exercise
 templates = Jinja2Templates(directory="app/templates")
@@ -16,11 +16,8 @@ templates = Jinja2Templates(directory="app/templates")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    async with async_session() as session:
-        result = await session.execute(select(Exercise).limit(1))
-        if not result.scalar_one_or_none():
-            from app.seed_exercises import seed_database
-            await seed_database()
+    from app.seed_exercises import seed_database
+    await seed_database()
     yield
 
 
@@ -32,6 +29,8 @@ app.include_router(diet.router)
 app.include_router(progress.router)
 app.include_router(workout.router)
 app.include_router(diet_plans.router)
+app.include_router(foods.router)
+app.include_router(recipes.router)
 
 
 @app.get("/", response_class=HTMLResponse)

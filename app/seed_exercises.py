@@ -1,66 +1,46 @@
-"""
-Seed exercises from wger API (free, open-source exercise database with images).
-"""
 import asyncio
+import json
 import httpx
 from sqlalchemy import select
 from app.database import async_session, init_db
 from app.models import Exercise
 
+MUSCLE_MAP = {
+    "chest": "Pecho", "triceps": "Tríceps", "shoulders": "Hombros",
+    "back": "Espalda", "biceps": "Bíceps", "legs": "Piernas",
+    "glutes": "Glúteos", "abs": "Abdomen", "cardio": "Cardio",
+    "full body": "Cuerpo completo", "calves": "Piernas",
+    "abductors": "Piernas", "adductors": "Piernas", "neck": "Cuello",
+    "forearms": "Bíceps", "trapezius": "Espalda", "lats": "Espalda",
+}
 
-EXERCISE_FALLBACKS = [
-    {"name": "Press banca con barra", "name_es": "Press banca con barra", "muscle_group": "Pecho", "category": "Fuerza"},
-    {"name": "Press banca inclinado con mancuernas", "name_es": "Press banca inclinado con mancuernas", "muscle_group": "Pecho", "category": "Fuerza"},
-    {"name": "Aperturas con mancuernas", "name_es": "Aperturas con mancuernas", "muscle_group": "Pecho", "category": "Aislamiento"},
-    {"name": "Flexiones", "name_es": "Flexiones", "muscle_group": "Pecho", "category": "Calistenia"},
-    {"name": "Fondos en paralelas", "name_es": "Fondos en paralelas", "muscle_group": "Pecho", "category": "Calistenia"},
-    {"name": "Press militar con barra", "name_es": "Press militar con barra", "muscle_group": "Hombros", "category": "Fuerza"},
-    {"name": "Elevaciones laterales con mancuernas", "name_es": "Elevaciones laterales con mancuernas", "muscle_group": "Hombros", "category": "Aislamiento"},
-    {"name": "Elevaciones frontales con mancuernas", "name_es": "Elevaciones frontales con mancuernas", "muscle_group": "Hombros", "category": "Aislamiento"},
-    {"name": "Pájaros con mancuernas", "name_es": "Pájaros con mancuernas", "muscle_group": "Hombros", "category": "Aislamiento"},
-    {"name": "Dominadas", "name_es": "Dominadas", "muscle_group": "Espalda", "category": "Calistenia"},
-    {"name": "Remo con barra", "name_es": "Remo con barra", "muscle_group": "Espalda", "category": "Fuerza"},
-    {"name": "Remo con mancuerna a una mano", "name_es": "Remo con mancuerna a una mano", "muscle_group": "Espalda", "category": "Fuerza"},
-    {"name": "Jalón al pecho", "name_es": "Jalón al pecho", "muscle_group": "Espalda", "category": "Fuerza"},
-    {"name": "Peso muerto", "name_es": "Peso muerto", "muscle_group": "Espalda", "category": "Fuerza"},
-    {"name": "Curl con barra", "name_es": "Curl con barra", "muscle_group": "Bíceps", "category": "Aislamiento"},
-    {"name": "Curl con mancuernas alterno", "name_es": "Curl con mancuernas alterno", "muscle_group": "Bíceps", "category": "Aislamiento"},
-    {"name": "Curl martillo", "name_es": "Curl martillo", "muscle_group": "Bíceps", "category": "Aislamiento"},
-    {"name": "Curl predicador", "name_es": "Curl predicador", "muscle_group": "Bíceps", "category": "Aislamiento"},
-    {"name": "Extensiones de tríceps con cuerda", "name_es": "Extensiones de tríceps con cuerda", "muscle_group": "Tríceps", "category": "Aislamiento"},
-    {"name": "Press francés con barra Z", "name_es": "Press francés con barra Z", "muscle_group": "Tríceps", "category": "Aislamiento"},
-    {"name": "Fondos en banco para tríceps", "name_es": "Fondos en banco para tríceps", "muscle_group": "Tríceps", "category": "Calistenia"},
-    {"name": "Patada de tríceps con mancuerna", "name_es": "Patada de tríceps con mancuerna", "muscle_group": "Tríceps", "category": "Aislamiento"},
-    {"name": "Sentadilla con barra", "name_es": "Sentadilla con barra", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Prensa de piernas", "name_es": "Prensa de piernas", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Extensiones de piernas", "name_es": "Extensiones de piernas", "muscle_group": "Piernas", "category": "Aislamiento"},
-    {"name": "Curl femoral tumbado", "name_es": "Curl femoral tumbado", "muscle_group": "Piernas", "category": "Aislamiento"},
-    {"name": "Peso muerto rumano", "name_es": "Peso muerto rumano", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Zancadas con mancuernas", "name_es": "Zancadas con mancuernas", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Elevación de talones de pie", "name_es": "Elevación de talones de pie", "muscle_group": "Piernas", "category": "Aislamiento"},
-    {"name": "Hip thrust", "name_es": "Hip thrust", "muscle_group": "Glúteos", "category": "Fuerza"},
-    {"name": "Patada de glúteo en polea", "name_es": "Patada de glúteo en polea", "muscle_group": "Glúteos", "category": "Aislamiento"},
-    {"name": "Abducción de cadera en máquina", "name_es": "Abducción de cadera en máquina", "muscle_group": "Glúteos", "category": "Aislamiento"},
-    {"name": "Plancha", "name_es": "Plancha", "muscle_group": "Abdomen", "category": "Calistenia"},
-    {"name": "Crunch abdominal", "name_es": "Crunch abdominal", "muscle_group": "Abdomen", "category": "Aislamiento"},
-    {"name": "Elevación de piernas colgado", "name_es": "Elevación de piernas colgado", "muscle_group": "Abdomen", "category": "Calistenia"},
-    {"name": "Russian twist", "name_es": "Russian twist", "muscle_group": "Abdomen", "category": "Aislamiento"},
-    {"name": "Bicicleta abdominal", "name_es": "Bicicleta abdominal", "muscle_group": "Abdomen", "category": "Calistenia"},
-    {"name": "Press banca con mancuernas", "name_es": "Press banca con mancuernas", "muscle_group": "Pecho", "category": "Fuerza"},
-    {"name": "Remo en máquina", "name_es": "Remo en máquina", "muscle_group": "Espalda", "category": "Fuerza"},
-    {"name": "Face pull", "name_es": "Face pull", "muscle_group": "Hombros", "category": "Aislamiento"},
-    {"name": "Sentadilla búlgara", "name_es": "Sentadilla búlgara", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Curl femoral sentado", "name_es": "Curl femoral sentado", "muscle_group": "Piernas", "category": "Aislamiento"},
-    {"name": "Press de hombros con mancuernas", "name_es": "Press de hombros con mancuernas", "muscle_group": "Hombros", "category": "Fuerza"},
-    {"name": "Remo upright", "name_es": "Remo upright", "muscle_group": "Hombros", "category": "Fuerza"},
-    {"name": "Curl inverso", "name_es": "Curl inverso", "muscle_group": "Bíceps", "category": "Aislamiento"},
-    {"name": "Aperturas en polea", "name_es": "Aperturas en polea", "muscle_group": "Pecho", "category": "Aislamiento"},
-    {"name": "Press declinado con barra", "name_es": "Press declinado con barra", "muscle_group": "Pecho", "category": "Fuerza"},
-    {"name": "Sentadilla goblet", "name_es": "Sentadilla goblet", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Peso muerto con piernas rígidas", "name_es": "Peso muerto con piernas rígidas", "muscle_group": "Piernas", "category": "Fuerza"},
-    {"name": "Curl de piernas en máquina", "name_es": "Curl de piernas en máquina", "muscle_group": "Piernas", "category": "Aislamiento"},
-    {"name": "Elevación de pelvis", "name_es": "Elevación de pelvis", "muscle_group": "Glúteos", "category": "Fuerza"},
-]
+
+def parse_wger(wger_ex):
+    wid = wger_ex["id"]
+    name = ""
+    description = ""
+    for t in wger_ex.get("translations", []):
+        if t.get("language") == 4:
+            name = t["name"]
+            description = t.get("description", "") or ""
+            break
+    if not name and wger_ex.get("translations"):
+        t0 = wger_ex["translations"][0]
+        name = t0["name"]
+        description = t0.get("description", "") or ""
+
+    cat_name = wger_ex["category"]["name"] if wger_ex.get("category") else ""
+    muscle = MUSCLE_MAP.get(cat_name.lower().strip(), cat_name)
+    img = wger_ex["images"][0]["image"] if wger_ex.get("images") else None
+
+    muscles_list = [m["name"] for m in wger_ex.get("muscles", [])]
+    sec_muscles = [m["name"] for m in wger_ex.get("muscles_secondary", [])]
+    target_muscles = json.dumps({"primary": muscles_list, "secondary": sec_muscles})
+
+    equipment_list = [e["name"] for e in wger_ex.get("equipment", [])]
+    equipment = ", ".join(equipment_list) if equipment_list else None
+
+    return wid, name, description, muscle, img, target_muscles, equipment
 
 
 async def seed_database():
@@ -69,23 +49,136 @@ async def seed_database():
     async with async_session() as session:
         result = await session.execute(select(Exercise).limit(1))
         if result.scalar_one_or_none():
-            print("Ejercicios ya existen en la BD. Saltando seed.")
+            print("Ejercicios ya existen. Sincronizando datos desde wger...")
+            await sync_from_wger()
             return
 
-        added_names = set()
+        print("Descargando ejercicios desde wger API...")
+        added = 0
+        url = "https://wger.de/api/v2/exerciseinfo/?language=4&limit=200"
+        async with httpx.AsyncClient() as client:
+            while url and added < 1000:
+                try:
+                    resp = await client.get(url, timeout=15)
+                    data = resp.json()
+                except Exception as e:
+                    print(f"Error fetching wger: {e}")
+                    break
 
-        for fb in EXERCISE_FALLBACKS:
-            ex = Exercise(
-                name=fb["name"],
-                name_es=fb["name_es"],
-                muscle_group=fb["muscle_group"],
-                category=fb["category"],
-            )
-            session.add(ex)
-            added_names.add(fb["name"])
+                for wger_ex in data.get("results", []):
+                    wid, name, description, muscle, img, target_muscles, equipment = parse_wger(wger_ex)
+                    if not name:
+                        continue
+
+                    existing = await session.execute(
+                        select(Exercise).where(Exercise.wger_id == wid)
+                    )
+                    if existing.scalar_one_or_none():
+                        continue
+
+                    session.add(Exercise(
+                        name=name,
+                        name_es=name,
+                        muscle_group=muscle,
+                        description=description,
+                        target_muscles=target_muscles,
+                        equipment=equipment,
+                        image_url=img,
+                        wger_id=wid,
+                    ))
+                    added += 1
+
+                url = data.get("next")
 
         await session.commit()
-        print(f"✅ {len(added_names)} ejercicios guardados (modo local, sin API wger)")
+        print(f"✅ {added} ejercicios guardados con datos de wger")
+
+
+async def sync_from_wger():
+    """Sync existing exercises with wger data: update descriptions, muscles, images."""
+    async with httpx.AsyncClient() as client:
+        wger_exercises = []
+        url = "https://wger.de/api/v2/exerciseinfo/?language=4&limit=200"
+        while url:
+            try:
+                resp = await client.get(url, timeout=15)
+                data = resp.json()
+                wger_exercises.extend(data.get("results", []))
+                url = data.get("next")
+            except Exception as e:
+                print(f"Error fetching wger: {e}")
+                break
+
+        async with async_session() as session:
+            all_existing = (await session.execute(select(Exercise))).scalars().all()
+            by_name = {}
+            by_wger = {}
+            for ex in all_existing:
+                by_name[ex.name.lower()] = ex
+                if ex.wger_id:
+                    by_wger[ex.wger_id] = ex
+
+            updated = 0
+            added = 0
+            new_objs = []
+
+            for wger_ex in wger_exercises:
+                wid, name, description, muscle, img, target_muscles, equipment = parse_wger(wger_ex)
+                if not name:
+                    continue
+
+                changed = False
+
+                if wid in by_wger:
+                    ex = by_wger[wid]
+                    if not ex.description and description:
+                        ex.description = description; changed = True
+                    if not ex.target_muscles and target_muscles:
+                        ex.target_muscles = target_muscles; changed = True
+                    if not ex.equipment and equipment:
+                        ex.equipment = equipment; changed = True
+                    if img and not ex.image_url:
+                        ex.image_url = img; changed = True
+                    if changed:
+                        updated += 1
+                    continue
+
+                key = name.lower()
+                if key in by_name:
+                    ex = by_name[key]
+                    if not ex.description and description:
+                        ex.description = description; changed = True
+                    if not ex.target_muscles and target_muscles:
+                        ex.target_muscles = target_muscles; changed = True
+                    if not ex.equipment and equipment:
+                        ex.equipment = equipment; changed = True
+                    if img and not ex.image_url:
+                        ex.image_url = img; changed = True
+                    if not ex.wger_id:
+                        ex.wger_id = wid; changed = True
+                    if not ex.muscle_group and muscle:
+                        ex.muscle_group = muscle; changed = True
+                    if changed:
+                        updated += 1
+                    continue
+
+                new_objs.append(Exercise(
+                    name=name,
+                    name_es=name,
+                    muscle_group=muscle,
+                    description=description,
+                    target_muscles=target_muscles,
+                    equipment=equipment,
+                    image_url=img,
+                    wger_id=wid,
+                ))
+                added += 1
+
+            for obj in new_objs:
+                session.add(obj)
+
+            await session.commit()
+            print(f"✅ {updated} ejercicios actualizados, {added} ejercicios nuevos")
 
 
 if __name__ == "__main__":

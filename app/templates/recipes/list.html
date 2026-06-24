@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Recetas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-book"></i> Recetas</h4>
+    <a href="/recipes/new" class="btn btn-warning"><i class="bi bi-plus-lg"></i> Nueva receta</a>
+</div>
+
+<div class="row g-2">
+    {% for r in recipes %}
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="/recipes/{{ r.id }}" class="text-decoration-none text-white">
+            <div class="card h-100 bg-dark border-secondary">
+                {% if r.imagen_url %}
+                <img src="{{ r.imagen_url }}" class="card-img-top" alt="{{ r.food_name }}"
+                     style="height:120px;object-fit:cover;">
+                {% else %}
+                <div class="d-flex align-items-center justify-content-center" style="height:120px;background:#1a1a2e;">
+                    <i class="bi bi-book text-muted" style="font-size:2rem;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body p-2">
+                    <small class="fw-bold d-block">{{ r.food_name }}</small>
+                    <small class="text-muted">
+                        {{ "%.0f"|format(r.calorias or 0) }} kcal/100g
+                    </small>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="text-center py-5 text-muted">
+            <p><i class="bi bi-book" style="font-size:3rem;"></i></p>
+            <p>No tienes recetas aún.</p>
+            <p class="small">Crea una receta desde <a href="/recipes/new">Nueva receta</a>.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

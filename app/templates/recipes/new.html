@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Nueva receta{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-egg-fried"></i> Nueva receta</h4>
+                <form method="post" id="recipeForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la receta</label>
+                        <input type="text" name="food_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo</label>
+                        <select name="grupo" class="form-select">
+                            <option value="">Sin grupo</option>
+                            {% for g in food_groups %}
+                            <option value="{{ g }}">{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <hr>
+                    <h5><i class="bi bi-basket"></i> Ingredientes</h5>
+                    <p class="text-muted small">Selecciona alimentos de tu catálogo. Los macros se calcularán automáticamente para 100g.</p>
+
+                    <div id="ingredients">
+                        <div class="row g-1 mb-1 ingredient-row">
+                            <div class="col-6">
+                                <select name="ingredient_id" class="form-select form-select-sm">
+                                    <option value="">Seleccionar...</option>
+                                    {% for c in catalog %}
+                                    <option value="{{ c.id }}">{{ c.food_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <input type="number" name="ingredient_qty" class="form-control form-control-sm" placeholder="gramos" step="1">
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient" style="display:none">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-info btn-sm mb-3" id="addIngredient">
+                        <i class="bi bi-plus-lg"></i> Añadir ingrediente
+                    </button>
+
+                    <div id="calculated" class="alert alert-info d-none">
+                        <strong>Macros calculados (por 100g):</strong>
+                        <span id="calcCal">0</span> kcal ·
+                        P: <span id="calcPro">0</span>g ·
+                        HC: <span id="calcCarbs">0</span>g ·
+                        G: <span id="calcGras">0</span>g
+                    </div>
+
+                    <hr>
+                    <h5><i class="bi bi-chat-dots"></i> Instrucciones</h5>
+                    <div class="mb-3">
+                        <textarea name="instrucciones" class="form-control" rows="4"
+                                  placeholder="Explica cómo preparar esta receta..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">Guardar receta</button>
+                    <a href="/recipes" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('addIngredient').addEventListener('click', function() {
+    const row = document.querySelector('.ingredient-row').cloneNode(true);
+    row.querySelector('.remove-ingredient').style.display = 'inline';
+    row.querySelectorAll('input, select').forEach(el => el.value = '');
+    document.getElementById('ingredients').appendChild(row);
+});
+
+document.getElementById('ingredients').addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-ingredient')) {
+        e.target.closest('.ingredient-row').remove();
+        calculateRecipe();
+    }
+});
+
+document.getElementById('ingredients').addEventListener('change', calculateRecipe);
+document.getElementById('ingredients').addEventListener('input', calculateRecipe);
+
+const catalogData = {
+    {% for c in catalog %}
+    {{ c.id }}: { calorias: {{ c.calorias or 0 }}, proteinas: {{ c.proteinas or 0 }}, carbs: {{ c.carbs or 0 }}, grasas: {{ c.grasas or 0 }} },
+    {% endfor %}
+};
+
+function calculateRecipe() {
+    const rows = document.querySelectorAll('.ingredient-row');
+    let totalCal = 0, totalPro = 0, totalCarbs = 0, totalGras = 0, totalWeight = 0;
+
+    rows.forEach(row => {
+        const sel = row.querySelector('select[name="ingredient_id"]');
+        const qtyInput = row.querySelector('input[name="ingredient_qty"]');
+        const id = parseInt(sel.value);
+        const qty = parseFloat(qtyInput.value) || 0;
+        if (id && qty > 0 && catalogData[id]) {
+            const factor = qty / 100;
+            totalCal += catalogData[id].calorias * factor;
+            totalPro += catalogData[id].proteinas * factor;
+            totalCarbs += catalogData[id].carbs * factor;
+            totalGras += catalogData[id].grasas * factor;
+            totalWeight += qty;
+        }
+    });
+
+    const div = document.getElementById('calculated');
+    if (totalWeight > 0) {
+        const per100 = w => (w / totalWeight * 100).toFixed(1);
+        document.getElementById('calcCal').textContent = per100(totalCal);
+        document.getElementById('calcPro').textContent = per100(totalPro);
+        document.getElementById('calcCarbs').textContent = per100(totalCarbs);
+        document.getElementById('calcGras').textContent = per100(totalGras);
+        div.classList.remove('d-none');
+    } else {
+        div.classList.add('d-none');
+    }
+}
+</script>
+{% endblock %}
