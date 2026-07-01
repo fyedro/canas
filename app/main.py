@@ -16,8 +16,6 @@ templates = Jinja2Templates(directory="app/templates")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    from app.seed_exercises import seed_database
-    await seed_database()
     yield
 
 

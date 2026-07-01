@@ -45,6 +45,7 @@ NEW_COLUMNS = {
     "exercises": [
         "target_muscles TEXT",
         "equipment VARCHAR(200)",
+        "muscle_group_secondary VARCHAR(200)",
     ],
     "food_catalog": [
         "grupo VARCHAR(50)",

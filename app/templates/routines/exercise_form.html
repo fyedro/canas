@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Nuevo ejercicio{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-plus-circle"></i> Nuevo ejercicio</h4>
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del ejercicio</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">URL de la imagen</label>
+                        <input type="url" name="image_url" class="form-control" placeholder="https://...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Equipamiento</label>
+                        <input type="text" name="equipment" class="form-control" placeholder="Barra, Mancuerna, Máquina...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo muscular principal</label>
+                        <select name="muscle_group" class="form-select">
+                            <option value="">Seleccionar...</option>
+                            {% for g in grupos %}
+                            <option value="{{ g }}">{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo muscular secundario <small class="text-muted">(opcional)</small></label>
+                        <select name="muscle_group_secondary" class="form-select">
+                            <option value="">Ninguno</option>
+                            {% for g in grupos %}
+                            <option value="{{ g }}">{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Guardar ejercicio</button>
+                    <a href="/routines/exercises" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -68,6 +68,49 @@ async def exercise_library(
     })
 
 
+MUSCLE_GROUP_OPTIONS = [
+    "Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps",
+    "Piernas", "Glúteos", "Abdomen", "Cardio", "Cuerpo completo",
+    "Cuello", "Antebrazos", "Trampas",
+]
+
+
+@router.get("/exercises/new", response_class=HTMLResponse)
+async def new_exercise_page(
+    request: Request,
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    return templates.TemplateResponse(request, "routines/exercise_form.html", {
+        "user": user, "grupos": MUSCLE_GROUP_OPTIONS, "exercise": None,
+    })
+
+
+@router.post("/exercises/new")
+async def create_exercise(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    data = await request.form()
+    ex = Exercise(
+        name=data["name"],
+        name_es=data.get("name", ""),
+        muscle_group=data.get("muscle_group", "") or None,
+        muscle_group_secondary=data.get("muscle_group_secondary", "") or None,
+        equipment=data.get("equipment", "") or None,
+        image_url=data.get("image_url", "") or None,
+        is_custom=True,
+        user_id=user.id,
+    )
+    db.add(ex)
+    await db.commit()
+    return RedirectResponse(url="/routines/exercises", status_code=302)
+
+
 @router.get("/exercises/{exercise_id}", response_class=HTMLResponse)
 async def exercise_detail(
     request: Request,

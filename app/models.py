@@ -55,6 +55,7 @@ class Exercise(Base):
     name = Column(String(200), nullable=False, index=True)
     name_es = Column(String(200), nullable=True)
     muscle_group = Column(String(50), nullable=True)
+    muscle_group_secondary = Column(String(200), nullable=True)
     category = Column(String(50), nullable=True)
     description = Column(Text, nullable=True)
     target_muscles = Column(Text, nullable=True)
