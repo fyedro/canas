@@ -7,11 +7,11 @@ from app.models import Exercise
 
 MUSCLE_MAP = {
     "chest": "Pecho", "triceps": "Tríceps", "shoulders": "Hombros",
-    "back": "Espalda", "biceps": "Bíceps", "legs": "Piernas",
-    "glutes": "Glúteos", "abs": "Abdomen", "cardio": "Cardio",
+    "back": "Dorsal", "biceps": "Bíceps", "legs": "Piernas",
+    "glutes": "Glúteos", "abs": "Abdominales", "cardio": "Cardio",
     "full body": "Cuerpo completo", "calves": "Piernas",
     "abductors": "Piernas", "adductors": "Piernas", "neck": "Cuello",
-    "forearms": "Bíceps", "trapezius": "Espalda", "lats": "Espalda",
+    "forearms": "Bíceps", "trapezius": "Dorsal", "lats": "Dorsal",
 }
 
 

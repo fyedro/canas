@@ -19,51 +19,97 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
-                            <label class="form-label">Series</label>
-                            <input type="number" name="sets" class="form-control" value="3" min="1" max="20">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Reps min</label>
-                            <input type="number" name="min_reps" class="form-control" value="8" min="1">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Reps max</label>
-                            <input type="number" name="max_reps" class="form-control" value="12" min="1">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Peso (kg) - opcional</label>
-                        <input type="number" name="peso" class="form-control" step="0.5" value="0">
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100">Añadir</button>
+                    <button type="submit" class="btn btn-warning w-100">Añadir ejercicio</button>
                 </form>
             </div>
         </div>
     </div>
 
     <div class="col-md-7">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4>{{ routine.nombre }}</h4>
-            {% if routine.dia_semana %}
-            <span class="badge bg-secondary">{{ routine.dia_semana }}</span>
-            {% endif %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="post" action="/routines/{{ routine.id }}/edit">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Nombre de la rutina</label>
+                            <input type="text" name="nombre" class="form-control" value="{{ routine.nombre }}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Vueltas</label>
+                            <input type="number" name="vueltas" class="form-control" value="{{ routine.vueltas or 1 }}" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Descanso entre vueltas (s)</label>
+                            <input type="number" name="rest_entre_vueltas" class="form-control" value="{{ routine.rest_entre_vueltas or '' }}" min="0" placeholder="—">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-warning w-100"><i class="bi bi-check"></i> Guardar</button>
+                        </div>
+                    </div>
+                    {% if routine.created_at %}
+                    <small class="text-muted mt-2 d-block">Creada el {{ routine.created_at.strftime('%d/%m/%Y') }}</small>
+                    {% endif %}
+                </form>
+            </div>
         </div>
         <div class="list-group" id="exercise-list">
             {% for re in routine.exercises %}
-            <div class="list-group-item d-flex align-items-center gap-3" data-id="{{ re.id }}">
-                <span class="badge bg-warning rounded-pill">{{ re.orden + 1 }}</span>
-                <div class="flex-grow-1">
-                    <strong>{{ re.exercise_name }}</strong>
-                    <small class="text-muted d-block">
-                        {{ re.sets }}×{{ re.min_reps }}-{{ re.max_reps }}{% if re.peso %} · {{ "%.1f"|format(re.peso) }} kg{% endif %}
-                    </small>
+            <div class="list-group-item" data-id="{{ re.id }}">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning rounded-pill">{{ re.orden + 1 }}</span>
+                    <div class="flex-grow-1">
+                        <strong>{{ re.exercise_name }}</strong>
+                    <span class="badge bg-info" style="font-size:0.6rem;">{{ re.rest_time or 90 }}s</span>
+                    {% if re.exercise and re.exercise.is_timed %}
+                    <span class="badge bg-secondary" style="font-size:0.6rem;">tiempo</span>
+                    {% endif %}
+                    </div>
+                    <form method="post" action="/routines/{{ routine.id }}/remove-exercise/{{ re.id }}" style="display:inline">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar ejercicio?')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
                 </div>
-                <form method="post" action="/routines/{{ routine.id }}/remove-exercise/{{ re.id }}" style="display:inline">
-                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar ejercicio?')">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
+
+                {% if re.sets %}
+                <div class="mt-2 ms-4">
+                    <small class="text-muted">Series:</small>
+                    {% for rs in re.sets %}
+                    <div class="d-flex align-items-center gap-1 mt-1">
+                        <form method="post" action="/routines/{{ routine.id }}/exercises/{{ re.id }}/update-set/{{ rs.id }}" class="d-flex align-items-center gap-1 flex-grow-1">
+                            <span class="badge bg-secondary rounded-pill" style="font-size:0.7rem;">{{ rs.set_number }}</span>
+                            {% if re.exercise and re.exercise.is_timed %}
+                            <input type="number" name="reps" class="form-control form-control-sm" style="width:100px;" placeholder="segundos" value="{{ rs.reps if rs.reps is not none else '' }}" min="0">
+                            <span class="text-muted small">s</span>
+                            <input type="hidden" name="weight" value="">
+                            {% else %}
+                            <input type="number" name="weight" class="form-control form-control-sm" style="width:80px;" placeholder="kg" value="{{ rs.weight if rs.weight is not none else '' }}" step="0.5" min="0">
+                            <span class="text-muted small">×</span>
+                            <input type="number" name="reps" class="form-control form-control-sm" style="width:70px;" placeholder="reps" value="{{ rs.reps if rs.reps is not none else '' }}" min="0">
+                            {% endif %}
+                            <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1"><i class="bi bi-check"></i></button>
+                        </form>
+                        <form method="post" action="/routines/{{ routine.id }}/exercises/{{ re.id }}/remove-set/{{ rs.id }}" style="display:inline;">
+                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" onclick="return confirm('¿Eliminar serie?')"><i class="bi bi-x"></i></button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="mt-2 ms-4">
+                    <small class="text-muted">Sin series. Añade una:</small>
+                </div>
+                {% endif %}
+
+                <form method="post" action="/routines/{{ routine.id }}/exercises/{{ re.id }}/add-set" class="mt-2 ms-4">
+                    <button type="submit" class="btn btn-outline-warning btn-sm"><i class="bi bi-plus-lg"></i> Añadir serie</button>
+                </form>
+
+                <form method="post" action="/routines/{{ routine.id }}/exercises/{{ re.id }}/update-rest" class="mt-1 ms-4 d-flex align-items-center gap-2">
+                    <small class="text-muted">Descanso:</small>
+                    <input type="number" name="rest_time" class="form-control form-control-sm" style="width:70px;" value="{{ re.rest_time or 90 }}" min="0">
+                    <small class="text-muted">s</small>
+                    <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1"><i class="bi bi-check"></i></button>
                 </form>
             </div>
             {% else %}

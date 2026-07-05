@@ -1,41 +1,60 @@
-body {
-    background-color: #1a1a2e;
-    min-height: 100vh;
+/* Dark theme - custom palette */
+html[data-bs-theme="dark"] {
+    --accent: #e94560;
+    --accent-hover: #d63851;
+    --bg-card-alt: #0f3460;
+}
+
+/* Light theme - clean light palette */
+html[data-bs-theme="light"] {
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+    --bg-card-alt: #f0f2f5;
+}
+
+.btn-warning {
+    color: #fff;
+}
+html[data-bs-theme="dark"] .btn-warning {
+    --bs-btn-bg: #e94560;
+    --bs-btn-border-color: #e94560;
+    --bs-btn-hover-bg: #d63851;
+    --bs-btn-hover-border-color: #d63851;
+    --bs-btn-active-bg: #d63851;
+    --bs-btn-active-border-color: #d63851;
+}
+html[data-bs-theme="light"] .btn-warning {
+    --bs-btn-bg: #ffc107;
+    --bs-btn-border-color: #ffc107;
+    --bs-btn-color: #000;
+    --bs-btn-hover-bg: #e0a800;
+    --bs-btn-hover-border-color: #e0a800;
+    --bs-btn-hover-color: #000;
+    --bs-btn-active-bg: #e0a800;
+    --bs-btn-active-border-color: #e0a800;
+    --bs-btn-active-color: #000;
+}
+
+.text-warning {
+    color: var(--accent) !important;
+}
+
+a.text-decoration-none,
+a.text-decoration-none:hover {
+    color: var(--accent);
 }
 
 .card {
-    background-color: #16213e;
-    border: 1px solid #0f3460;
     border-radius: 12px;
 }
 
 .card:hover {
-    border-color: #e94560;
+    border-color: var(--accent) !important;
     transition: border-color 0.2s;
 }
 
-.btn-warning {
-    background-color: #e94560;
-    border-color: #e94560;
-    color: #fff;
-}
-
-.btn-warning:hover {
-    background-color: #d63851;
-    border-color: #d63851;
-    color: #fff;
-}
-
-.text-warning {
-    color: #e94560 !important;
-}
-
-a.text-decoration-none {
-    color: #e94560;
-}
-
-a.text-decoration-none:hover {
-    color: #d63851;
+.meal-card {
+    border-left: 4px solid var(--accent);
 }
 
 .navbar-brand {
@@ -66,10 +85,6 @@ a.text-decoration-none:hover {
     font-size: 3rem;
     font-weight: bold;
     font-variant-numeric: tabular-nums;
-}
-
-.meal-card {
-    border-left: 4px solid #e94560;
 }
 
 .progress-circle {

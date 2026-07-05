@@ -29,8 +29,13 @@
         <a href="/routines/exercises/{{ ex.id }}" class="text-decoration-none text-white">
             <div class="card h-100 bg-dark border-secondary">
                 {% if ex.image_url %}
+                {% if ex.image_url | is_video %}
+                <video src="{{ ex.image_url }}" class="card-img-top" autoplay loop muted playsinline
+                       style="height:140px;object-fit:cover;background:#1a1a1a;"></video>
+                {% else %}
                 <img src="{{ ex.image_url }}" class="card-img-top" alt="{{ ex.name_es or ex.name }}"
                      style="height:140px;object-fit:cover;background:#1a1a1a;">
+                {% endif %}
                 {% else %}
                 <div class="card-img-top d-flex align-items-center justify-content-center bg-dark"
                      style="height:140px;">
@@ -39,7 +44,35 @@
                 {% endif %}
                 <div class="card-body p-2">
                     <small class="card-title d-block fw-bold">{{ ex.name_es or ex.name }}</small>
-                    <small class="text-muted">{{ ex.muscle_group }}</small>
+                    <div class="mt-1">
+                        <span class="badge bg-warning" style="font-size:0.6rem;">{{ ex.muscle_group }}</span>
+                        {% if ex.muscle_group_secondary %}
+                        <span class="badge bg-secondary" style="font-size:0.6rem;">{{ ex.muscle_group_secondary }}</span>
+                        {% endif %}
+                        {% if ex.muscle_group_secondary2 %}
+                        <span class="badge bg-secondary" style="font-size:0.6rem;">{{ ex.muscle_group_secondary2 }}</span>
+                        {% endif %}
+                        {% if ex.is_timed %}
+                        <span class="badge bg-dark" style="font-size:0.6rem;">⏱ tiempo</span>
+                        {% endif %}
+                        {% if ex.show_cardio_metrics %}
+                        <span class="badge bg-info" style="font-size:0.6rem;">⚡ cardio</span>
+                        {% endif %}
+                    </div>
+                    {% if ex.equipment %}
+                    <div class="mt-1">
+                        {% for eq in ex.equipment.split(', ') %}
+                        <span class="badge bg-info" style="font-size:0.6rem;">{{ eq }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="badge bg-info" style="font-size:0.6rem;">Ninguno</span>
+                    {% endif %}
+                    <div class="text-end mt-1">
+                        <small class="text-muted-emphasis fw-bold" style="font-size:0.65rem;">
+                            {{ usage_counts.get(ex.id, 0) }}×
+                        </small>
+                    </div>
                 </div>
             </div>
         </a>

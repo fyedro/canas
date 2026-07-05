@@ -112,3 +112,21 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 
     result = await db.execute(select(UserProfile).where(UserProfile.id == user_id))
     return result.scalar_one_or_none()
+
+
+@router.post("/theme")
+async def toggle_theme(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    data = await request.form()
+    theme = data.get("theme", "dark")
+    if theme not in ("dark", "light"):
+        theme = "dark"
+    user.theme = theme
+    await db.commit()
+    referer = request.headers.get("referer", "/dashboard")
+    return RedirectResponse(url=referer, status_code=302)

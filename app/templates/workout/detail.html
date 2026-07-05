@@ -11,6 +11,7 @@
               onsubmit="return confirm('¿Eliminar este entrenamiento?')">
             <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
         </form>
+        <a href="/workout/{{ workout.id }}/edit" class="btn btn-warning btn-sm"><i class="bi bi-pencil"></i> Editar</a>
     </div>
     <p class="text-muted">
         {{ workout.fecha.strftime("%d %b %Y") }}
@@ -20,16 +21,24 @@
 </div>
 
 {% for ex_name, sets in exercises.items() %}
-<div class="card mb-3">
+{% set has_any = sets | selectattr('completed', 'equalto', true) | list %}
+<div class="card mb-3 {% if not has_any %}border-secondary opacity-75{% endif %}">
     <div class="card-body">
-        <h5>{{ ex_name }}</h5>
+        <h5>{{ ex_name }} {% if not has_any %}<span class="badge bg-secondary">Saltado</span>{% endif %}</h5>
+        {% if has_any %}
         <div class="table-responsive">
             <table class="table table-sm table-dark mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
+                        {% if sets[0].is_timed %}
+                        <th>Duración</th>
+                        {% else %}
                         <th>Peso</th>
                         <th>Reps</th>
+                        {% endif %}
+                        {% if sets[0].show_cardio_metrics %}<th>Resist.</th>{% endif %}
+                        {% if sets[0].show_cardio_metrics %}<th>Cal.</th>{% endif %}
                         {% if sets[0].rpe %}<th>RPE</th>{% endif %}
                     </tr>
                 </thead>
@@ -37,15 +46,110 @@
                     {% for s in sets %}
                     <tr>
                         <td>{{ s.set_number }}</td>
+                        {% if s.is_timed %}
+                        <td>{{ s.reps if s.reps else "-" }} s</td>
+                        {% else %}
                         <td>{{ "%.1f"|format(s.weight) if s.weight else "-" }} kg</td>
                         <td>{{ s.reps if s.reps else "-" }}</td>
+                        {% endif %}
+                        {% if sets[0].show_cardio_metrics %}<td>{{ s.resistencia if s.resistencia else "-" }}</td>{% endif %}
+                        {% if sets[0].show_cardio_metrics %}<td>{{ "%.0f"|format(s.calorias) if s.calorias else "-" }}</td>{% endif %}
                         {% if s.rpe %}<td>{{ s.rpe }}</td>{% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% else %}
+        <p class="text-muted small mb-0">Ejercicio saltado</p>
+        {% endif %}
     </div>
 </div>
 {% endfor %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-diagram-3"></i> Distribución muscular</h6>
+                <canvas id="workoutRadar" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-bar-chart"></i> % por grupo muscular</h6>
+                <canvas id="workoutBar" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const labels = {{ muscle_labels | tojson }};
+const values = {{ muscle_values | tojson }};
+
+new Chart(document.getElementById('workoutRadar'), {
+    type: 'radar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Activación',
+            data: values,
+            backgroundColor: 'rgba(255, 193, 7, 0.15)',
+            borderColor: 'rgba(255, 193, 7, 0.8)',
+            pointBackgroundColor: 'rgba(255, 193, 7, 1)',
+            pointBorderColor: '#fff',
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            r: {
+                beginAtZero: true,
+                ticks: { stepSize: 20, color: '#aaa', callback: v => v + '%' },
+                grid: { color: 'rgba(255,255,255,0.08)' },
+                angleLines: { color: 'rgba(255,255,255,0.08)' },
+                pointLabels: { color: '#ccc', font: { size: 9 } }
+            }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+new Chart(document.getElementById('workoutBar'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            data: values,
+            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        indexAxis: 'y',
+        scales: {
+            x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { color: '#aaa', callback: v => v + '%' },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                ticks: { color: '#ccc', font: { size: 9 } },
+                grid: { display: false }
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
 {% endblock %}

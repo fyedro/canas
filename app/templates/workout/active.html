@@ -1,11 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Entrenar{% endblock %}
+{% block title %}{{ "Editar entrenamiento" if workout_data else "Entrenar" }}{% endblock %}
 {% block content %}
+<form id="saveForm" method="post"
+      action="{% if workout_data %}/workout/{{ workout.id }}/edit/save{% else %}/workout/active/{{ workout.id }}/finish{% endif %}">
+</form>
 <div x-data="workoutApp()" x-init="init()" class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <h4 class="mb-0">{{ routine.nombre }}</h4>
+                <h4 class="mb-0">{% if workout_data %}Editando: {% endif %}{{ workout.nombre }}</h4>
                 <small class="text-muted"><span x-text="elapsed"></span></small>
             </div>
         </div>
@@ -14,14 +17,19 @@
             <div class="card mb-3" x-show="exIdx === currentExerciseIndex">
                 <div class="card-body">
                     <h5 x-text="ex.exercise_name"></h5>
+                    <small class="text-muted" x-show="totalVueltas > 1" x-text="'Vuelta ' + (ex.vuelta + 1) + '/' + totalVueltas"></small>
 
                     <div class="table-responsive">
                         <table class="table table-dark table-sm mb-2">
                             <thead>
                                 <tr>
                                     <th style="width:40px">#</th>
-                                    <th>Peso (kg)</th>
-                                    <th>Reps</th>
+                                    <template x-if="!ex.is_timed">
+                                        <th>Peso (kg)</th>
+                                    </template>
+                                    <th x-text="ex.is_timed ? 'Segundos' : 'Reps'"></th>
+                                    <th style="width:70px" x-show="ex.show_cardio_metrics">Resist.</th>
+                                    <th style="width:70px" x-show="ex.show_cardio_metrics">Cal.</th>
                                     <th style="width:50px">Hecho</th>
                                     <th style="width:30px"></th>
                                 </tr>
@@ -30,17 +38,27 @@
                                 <template x-for="(set, sIdx) in ex.sets" :key="sIdx">
                                     <tr :class="{'table-success': set.completed}">
                                         <td class="text-muted small align-middle" x-text="sIdx + 1"></td>
-                                        <td>
-                                            <input type="number" x-model="set.weight"
-                                                   class="form-control form-control-sm" step="0.5" min="0"
-                                                   :disabled="set.completed"
-                                                   @input="autoSaveSet(exIdx, sIdx)">
-                                        </td>
+                                        <template x-if="!ex.is_timed">
+                                            <td>
+                                                <input type="number" x-model="set.weight"
+                                                       class="form-control form-control-sm" step="0.5" min="0"
+                                                       :disabled="set.completed">
+                                            </td>
+                                        </template>
                                         <td>
                                             <input type="number" x-model="set.reps"
                                                    class="form-control form-control-sm" min="0"
-                                                   :disabled="set.completed"
-                                                   @input="autoSaveSet(exIdx, sIdx)">
+                                                   :disabled="set.completed">
+                                        </td>
+                                        <td x-show="ex.show_cardio_metrics">
+                                            <input type="number" x-model="set.resistencia"
+                                                   class="form-control form-control-sm" min="0" step="0.5"
+                                                   :disabled="set.completed" placeholder="—">
+                                        </td>
+                                        <td x-show="ex.show_cardio_metrics">
+                                            <input type="number" x-model="set.calorias"
+                                                   class="form-control form-control-sm" min="0" step="0.5"
+                                                   :disabled="set.completed" placeholder="—">
                                         </td>
                                         <td class="text-center">
                                             <input type="checkbox" class="form-check-input"
@@ -69,6 +87,11 @@
                                 x-show="!allSetsDone(exIdx)">
                             <i class="bi bi-check-lg"></i> Completar ejercicio
                         </button>
+                        <button class="btn btn-outline-secondary"
+                                @click="skipExercise(exIdx)"
+                                x-show="!allSetsDone(exIdx)">
+                            Saltar
+                        </button>
                         <button class="btn btn-outline-primary flex-grow-1"
                                 @click="nextExercise(exIdx)"
                                 x-show="allSetsDone(exIdx) && exIdx < exercises.length - 1">
@@ -81,7 +104,7 @@
 
         <div class="card mb-3 text-center" x-show="showRest">
             <div class="card-body">
-                <p class="text-muted mb-1">Descanso</p>
+                <p class="text-muted mb-1" x-text="restLabel"></p>
                 <div class="display-4 fw-bold text-warning" x-text="restDisplay"></div>
                 <div class="d-flex justify-content-center gap-2 mt-2">
                     <button class="btn btn-outline-primary btn-sm" @click="addRest(15)">+15s</button>
@@ -102,14 +125,15 @@
                         <i class="bi"
                            :class="i < currentExerciseIndex ? 'bi-check-circle-fill text-success' : (i === currentExerciseIndex ? 'bi-play-circle-fill text-warning' : 'bi-circle text-muted')"></i>
                         <span class="small flex-grow-1" x-text="ex.exercise_name"></span>
+                        <small class="text-muted" x-text="'V' + (ex.vuelta + 1)"></small>
                         <small class="text-muted" x-text="doneCount(ex) + '/' + ex.sets.length"></small>
                     </div>
                 </template>
             </div>
         </div>
 
-        <button class="btn btn-outline-danger w-100" @click="finishWorkout()">
-            <i class="bi bi-stop-fill"></i> Finalizar
+        <button type="button" class="btn btn-outline-danger w-100" @click="finishWorkout()">
+            <i class="bi bi-stop-fill"></i> {% if workout_data %}Volver al detalle{% else %}Finalizar{% endif %}
         </button>
     </div>
 </div>
@@ -124,23 +148,52 @@ function workoutApp() {
         showRest: false,
         restSeconds: 0,
         restInterval: null,
+        isRestBetweenVueltas: false,
         elapsed: '00:00',
         elapsedSeconds: 0,
         elapsedInterval: null,
-        workoutId: {{ workout.id if workout else 'null' }},
-        saveTimer: null,
+        totalVueltas: 1,
+        restEntreVueltas: 90,
+        {% if workout_data %}editing: true,{% endif %}
 
         init() {
-            {% if routine.exercises %}
+            {% if workout_data %}
             this.exercises = [
-                {% for re in routine.exercises %}
+                {% for ex_name, sets in workout_data.items() %}
                 {
-                    exercise_name: '{{ re.exercise_name|safe }}',
-                    sets: [{weight: {{ re.peso or 20 }}, reps: 10, completed: false, saved: false}],
-                    _id: 'ex{{ re.id }}',
+                    exercise_name: '{{ ex_name|safe }}',
+                    is_timed: {{ sets[0].is_timed|lower if sets and sets[0].is_timed is not none else 'false' }},
+                    show_cardio_metrics: {{ sets[0].show_cardio_metrics|lower if sets and sets[0].show_cardio_metrics is not none else 'false' }},
+                    vuelta: 0,
+                    sets: [
+                        {% for s in sets %}
+                        {weight: {{ s.weight or 0 }}, reps: {{ s.reps or 0 }}, completed: false, _id: {{ s.id }}},
+                        {% endfor %}
+                    ],
                 },
                 {% endfor %}
             ];
+            {% elif routine and routine.exercises %}
+            this.totalVueltas = {{ routine.vueltas or 1 }};
+            this.restEntreVueltas = {{ routine.rest_entre_vueltas or 90 }};
+            this.exercises = [];
+            {% for v in range(routine.vueltas or 1) %}
+                {% for re in routine.exercises %}
+            this.exercises.push({
+                exercise_name: '{{ re.exercise_name|safe }}',
+                is_timed: {{ 'true' if re.exercise and re.exercise.is_timed else 'false' }},
+                show_cardio_metrics: {{ 'true' if re.exercise and re.exercise.show_cardio_metrics else 'false' }},
+                vuelta: {{ v }},
+                rest_time: {{ re.rest_time or 90 }},
+                exercise_order: {{ re.orden }},
+                sets: [
+                    {% for rs in re.sets %}
+                    {weight: {{ rs.weight or 0 }}, reps: {{ rs.reps or 0 }}, completed: false},
+                    {% endfor %}
+                ],
+            });
+                {% endfor %}
+            {% endfor %}
             {% endif %}
 
             this.elapsedInterval = setInterval(() => {
@@ -160,60 +213,79 @@ function workoutApp() {
         addSet(exIdx) {
             const ex = this.exercises[exIdx];
             const last = ex.sets[ex.sets.length - 1];
-            ex.sets.push({
-                weight: last ? last.weight : 20,
-                reps: last ? last.reps : 10,
-                completed: false,
-                saved: false,
-            });
+            const newSet = {completed: false, resistencia: 0, calorias: 0};
+            if (!ex.is_timed) {
+                newSet.weight = last ? last.weight : 20;
+                newSet.reps = last ? last.reps : 10;
+            } else {
+                newSet.weight = 0;
+                newSet.reps = last ? last.reps : 30;
+            }
+            if (last) {
+                newSet.resistencia = last.resistencia;
+                newSet.calorias = last.calorias;
+            }
+            if (!ex.show_cardio_metrics) {
+                newSet.resistencia = '';
+                newSet.calorias = '';
+            }
+            ex.sets.push(newSet);
         },
 
         removeSet(exIdx, sIdx) {
             const ex = this.exercises[exIdx];
-            const set = ex.sets[sIdx];
-            if (set.saved) {
-                fetch(`/workout/active/{{ workout.id }}/delete-set/${set.id || ''}`, {method: 'POST'});
-            }
             ex.sets.splice(sIdx, 1);
         },
 
         toggleSet(exIdx, sIdx) {
-            const set = this.exercises[exIdx].sets[sIdx];
-            this.saveSet(exIdx, sIdx);
             if (this.allSetsDone(exIdx)) {
                 this.startRest(exIdx);
             }
         },
 
-        autoSaveSet(exIdx, sIdx) {
-            clearTimeout(this.saveTimer);
-            this.saveTimer = setTimeout(() => this.saveSet(exIdx, sIdx), 500);
-        },
-
-        saveSet(exIdx, sIdx) {
-            const set = this.exercises[exIdx].sets[sIdx];
-            if (!set.dirty && set.saved) return;
-            set.saved = true;
-            fetch('/workout/active/{{ workout.id }}/save-set', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    exercise_name: this.exercises[exIdx].exercise_name,
-                    exercise_order: exIdx,
-                    set_number: sIdx + 1,
-                    weight: set.weight,
-                    reps: set.reps,
-                    completed: set.completed,
-                })
-            });
-        },
-
         finishExercise(exIdx) {
-            this.exercises[exIdx].sets.forEach((s, i) => {
-                s.completed = true;
-                this.saveSet(exIdx, i);
-            });
+            this.exercises[exIdx].sets.forEach(s => s.completed = true);
             this.startRest(exIdx);
+        },
+
+        finishWorkout() {
+            const form = document.getElementById('saveForm');
+            form.innerHTML = '';
+            let idx = 0;
+            for (const ex of this.exercises) {
+                for (let sIdx = 0; sIdx < ex.sets.length; sIdx++) {
+                    const set = ex.sets[sIdx];
+                    form.innerHTML += `<input type="hidden" name="weight_${idx}" value="${set.weight === '' ? '' : set.weight}">`;
+                    form.innerHTML += `<input type="hidden" name="reps_${idx}" value="${set.reps === '' ? '' : set.reps}">`;
+                    form.innerHTML += `<input type="hidden" name="completed_${idx}" value="${set.completed}">`;
+                    form.innerHTML += `<input type="hidden" name="exercise_name_${idx}" value="${ex.exercise_name}">`;
+                    form.innerHTML += `<input type="hidden" name="exercise_order_${idx}" value="${ex.exercise_order || 0}">`;
+                    form.innerHTML += `<input type="hidden" name="set_number_${idx}" value="${sIdx + 1}">`;
+                    form.innerHTML += `<input type="hidden" name="is_timed_${idx}" value="${ex.is_timed}">`;
+                    form.innerHTML += `<input type="hidden" name="resistencia_${idx}" value="${set.resistencia === '' || set.resistencia === undefined ? '' : set.resistencia}">`;
+                    form.innerHTML += `<input type="hidden" name="calorias_${idx}" value="${set.calorias === '' || set.calorias === undefined ? '' : set.calorias}">`;
+                    idx++;
+                }
+            }
+            form.innerHTML += `<input type="hidden" name="total" value="${idx}">`;
+            form.submit();
+        },
+
+        skipExercise(exIdx) {
+            const ex = this.exercises[exIdx];
+            ex.sets.forEach(s => {
+                s.weight = '';
+                s.reps = '';
+                s.resistencia = '';
+                s.calorias = '';
+                s.completed = false;
+            });
+            if (exIdx < this.exercises.length - 1) {
+                this.currentExerciseIndex++;
+                this.showRest = false;
+            } else {
+                this.finishWorkout();
+            }
         },
 
         nextExercise(exIdx) {
@@ -232,8 +304,18 @@ function workoutApp() {
         },
 
         startRest(exIdx) {
-            const restTime = {{ (routine.exercises[0].rest_time or 90) if routine.exercises else 90 }};
-            this.restSeconds = restTime;
+            const ex = this.exercises[exIdx];
+            const isLastInVuelta = this.totalVueltas > 1 && (exIdx + 1) % (this.exercises.length / this.totalVueltas) === 0 && exIdx < this.exercises.length - 1;
+            const isLastOverall = exIdx === this.exercises.length - 1;
+            const nextEx = this.exercises[exIdx + 1];
+
+            if (isLastInVuelta && !isLastOverall && nextEx && nextEx.vuelta > ex.vuelta) {
+                this.restSeconds = this.restEntreVueltas;
+                this.isRestBetweenVueltas = true;
+            } else {
+                this.restSeconds = ex.rest_time || 90;
+                this.isRestBetweenVueltas = false;
+            }
             this.showRest = true;
             if (this.restInterval) clearInterval(this.restInterval);
             this.restInterval = setInterval(() => {
@@ -249,6 +331,7 @@ function workoutApp() {
             this.showRest = false;
             if (this.restInterval) clearInterval(this.restInterval);
             this.restSeconds = 0;
+            this.isRestBetweenVueltas = false;
         },
 
         addRest(sec) {
@@ -259,11 +342,8 @@ function workoutApp() {
             return this.formatTime(this.restSeconds);
         },
 
-        finishWorkout() {
-            if (confirm('¿Finalizar entrenamiento?')) {
-                fetch('/workout/active/{{ workout.id }}/finish', {method: 'POST'})
-                    .then(r => { if (r.redirected) window.location.href = r.url; });
-            }
+        get restLabel() {
+            return this.isRestBetweenVueltas ? 'Descanso entre vueltas' : 'Descanso';
         },
 
         formatTime(s) {

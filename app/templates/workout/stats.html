@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h4><i class="bi bi-graph-up"></i> Estadísticas de entrenamiento</h4>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-calendar"></i> Entrenos por mes</h6>
+                <canvas id="monthlyChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-bar-chart"></i> Volumen mensual (kg)</h6>
+                <canvas id="volumeChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-star"></i> Ejercicios más usados</h6>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Ejercicio</th>
+                                <th>Series</th>
+                                <th>Ø Peso</th>
+                                <th>Ø Reps</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ex in top_exercises %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ ex.exercise_name }}</td>
+                                <td>{{ ex.total_sets }}</td>
+                                <td>{{ "%.1f"|format(ex.avg_weight) if ex.avg_weight else "-" }}</td>
+                                <td>{{ "%.0f"|format(ex.avg_reps) if ex.avg_reps else "-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-pie-chart"></i> Grupos musculares</h6>
+                <canvas id="musclePie" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const monLabels = {{ monthly_labels | tojson }};
+const monCounts = {{ monthly_counts | tojson }};
+const monMins = {{ monthly_mins | tojson }};
+const volLabels = {{ volume_labels | tojson }};
+const volData = {{ volume_data | tojson }};
+const musLabels = {{ muscle_labels_stats | tojson }};
+const musValues = {{ muscle_values_stats | tojson }};
+
+new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+        labels: monLabels,
+        datasets: [{
+            label: 'Entrenos',
+            data: monCounts,
+            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { ticks: { color: '#aaa', font: {size: 10} }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+new Chart(document.getElementById('volumeChart'), {
+    type: 'bar',
+    data: {
+        labels: volLabels,
+        datasets: [{
+            label: 'kg',
+            data: volData,
+            backgroundColor: 'rgba(13, 202, 240, 0.7)',
+            borderColor: 'rgba(13, 202, 240, 1)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { ticks: { color: '#aaa', font: {size: 10} }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+new Chart(document.getElementById('musclePie'), {
+    type: 'doughnut',
+    data: {
+        labels: musLabels,
+        datasets: [{
+            data: musValues,
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#E7E9ED', '#7BC8A4', '#C9CBCF', '#FF6B6B',
+                '#48C774', '#F39C12', '#9B59B6', '#1ABC9C', '#E74C3C'
+            ],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { color: '#ccc', font: {size: 10}, padding: 8 } }
+        }
+    }
+});
+</script>
+{% endblock %}

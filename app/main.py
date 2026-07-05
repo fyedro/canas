@@ -13,6 +13,15 @@ from app.models import Exercise
 templates = Jinja2Templates(directory="app/templates")
 
 
+def is_video(url):
+    if not url:
+        return False
+    return any(url.lower().endswith(ext) for ext in (".mp4", ".webm", ".mov", ".avi", ".mkv"))
+
+
+templates.env.filters["is_video"] = is_video
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()

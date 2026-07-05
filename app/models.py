@@ -10,16 +10,21 @@ import enum
 
 
 class MuscleGroup(str, enum.Enum):
-    PECHO = "Pecho"
-    ESPALDA = "Espalda"
-    HOMBROS = "Hombros"
+    ABDOMEN = "Abdominales"
+    ANTEBRAZO = "Antebrazo"
     BICEPS = "Bíceps"
-    TRICEPS = "Tríceps"
-    PIERNAS = "Piernas"
-    GLUTEOS = "Glúteos"
-    ABDOMEN = "Abdomen"
     CARDIO = "Cardio"
+    CUADRICEPS = "Cuádriceps"
+    CUELLO = "Cuello"
     CUERPO_COMPLETO = "Cuerpo completo"
+    DORSAL = "Dorsal"
+    ESPALDA_BAJA = "Espalda baja"
+    GEMELOS = "Gemelos"
+    GLUTEOS = "Glúteos"
+    HOMBROS = "Hombros"
+    ISQUIOTIBIALES = "Isquiotibiales"
+    PECHO = "Pecho"
+    TRICEPS = "Tríceps"
 
 
 class MealType(str, enum.Enum):
@@ -36,6 +41,7 @@ class UserProfile(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     nombre = Column(String(100), nullable=False)
     password_hash = Column(String(255), nullable=False)
+    theme = Column(String(10), nullable=False, default="dark")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     routines = relationship("Routine", back_populates="user", cascade="all, delete-orphan")
@@ -56,6 +62,7 @@ class Exercise(Base):
     name_es = Column(String(200), nullable=True)
     muscle_group = Column(String(50), nullable=True)
     muscle_group_secondary = Column(String(200), nullable=True)
+    muscle_group_secondary2 = Column(String(200), nullable=True)
     category = Column(String(50), nullable=True)
     description = Column(Text, nullable=True)
     target_muscles = Column(Text, nullable=True)
@@ -64,6 +71,8 @@ class Exercise(Base):
     image_url_secondary = Column(String(500), nullable=True)
     wger_id = Column(Integer, unique=True, nullable=True)
     is_custom = Column(Boolean, default=False)
+    is_timed = Column(Boolean, default=False)
+    show_cardio_metrics = Column(Boolean, default=False)
     user_id = Column(String, ForeignKey("user_profiles.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -76,6 +85,8 @@ class Routine(Base):
     nombre = Column(String(200), nullable=False)
     descripcion = Column(Text, nullable=True)
     dia_semana = Column(String(20), nullable=True)
+    vueltas = Column(Integer, nullable=False, default=1)
+    rest_entre_vueltas = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -92,16 +103,27 @@ class RoutineExercise(Base):
     routine_id = Column(Integer, ForeignKey("routines.id"), nullable=False)
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=True)
     exercise_name = Column(String(200), nullable=False)
-    sets = Column(Integer, nullable=False, default=3)
-    min_reps = Column(Integer, nullable=True)
-    max_reps = Column(Integer, nullable=True)
-    peso = Column(Float, nullable=True)
     orden = Column(Integer, nullable=False, default=0)
     rest_time = Column(Integer, nullable=True, default=90)
     notas = Column(Text, nullable=True)
 
     routine = relationship("Routine", back_populates="exercises")
     exercise = relationship("Exercise")
+    sets = relationship("RoutineSet", back_populates="routine_exercise",
+                        cascade="all, delete-orphan",
+                        order_by="RoutineSet.set_number")
+
+
+class RoutineSet(Base):
+    __tablename__ = "routine_sets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    routine_exercise_id = Column(Integer, ForeignKey("routine_exercises.id"), nullable=False)
+    set_number = Column(Integer, nullable=False, default=1)
+    weight = Column(Float, nullable=True)
+    reps = Column(Integer, nullable=True)
+
+    routine_exercise = relationship("RoutineExercise", back_populates="sets")
 
 
 class Workout(Base):
@@ -135,11 +157,14 @@ class WorkoutSet(Base):
     set_number = Column(Integer, nullable=False)
     weight = Column(Float, nullable=True)
     reps = Column(Integer, nullable=True)
+    is_timed = Column(Boolean, default=False)
     rpe = Column(Float, nullable=True)
     completed = Column(Boolean, default=True)
     rest_time = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
-
+    resistencia = Column(Float, nullable=True)
+    calorias = Column(Float, nullable=True)
+    
     workout = relationship("Workout", back_populates="sets")
 
 

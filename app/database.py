@@ -46,11 +46,30 @@ NEW_COLUMNS = {
         "target_muscles TEXT",
         "equipment VARCHAR(200)",
         "muscle_group_secondary VARCHAR(200)",
+        "muscle_group_secondary2 VARCHAR(200)",
+        "is_timed BOOLEAN DEFAULT FALSE",
+        "show_cardio_metrics BOOLEAN DEFAULT FALSE",
+    ],
+    "routines": [
+        "vueltas INTEGER DEFAULT 1",
+        "rest_entre_vueltas INTEGER",
+    ],
+    "workout_sets": [
+        "is_timed BOOLEAN DEFAULT FALSE",
+        "resistencia FLOAT",
+        "calorias FLOAT",
+    ],
+    "user_profiles": [
+        "theme VARCHAR(10) DEFAULT 'dark'",
     ],
     "food_catalog": [
         "grupo VARCHAR(50)",
         "instrucciones TEXT",
     ]
+}
+
+DROP_COLUMNS = {
+    "routine_exercises": ["sets", "min_reps", "max_reps", "peso"],
 }
 
 
@@ -72,6 +91,16 @@ async def init_db():
                             col_name = col_def.split()[0]
                             await conn.execute(
                                 text(f"ALTER TABLE {table} ADD COLUMN {col_def}")
+                            )
+                    except Exception:
+                        pass
+
+            for table, cols in DROP_COLUMNS.items():
+                for col in cols:
+                    try:
+                        if dialect == "postgresql":
+                            await conn.execute(
+                                text(f"ALTER TABLE {table} DROP COLUMN IF EXISTS {col}")
                             )
                     except Exception:
                         pass

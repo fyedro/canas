@@ -1,30 +1,66 @@
 {% extends "base.html" %}
-{% block title %}Nuevo ejercicio{% endblock %}
+{% block title %}{{ "Editar ejercicio" if exercise else "Nuevo ejercicio" }}{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card">
             <div class="card-body">
-                <h4 class="mb-3"><i class="bi bi-plus-circle"></i> Nuevo ejercicio</h4>
-                <form method="post">
+                <h4 class="mb-3"><i class="bi bi-{{ 'pencil' if exercise else 'plus-circle' }}"></i> {{ "Editar ejercicio" if exercise else "Nuevo ejercicio" }}</h4>
+                {% if error %}
+                <div class="alert alert-danger py-2">{{ error }}</div>
+                {% endif %}
+                <form method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label">Nombre del ejercicio</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control" value="{{ exercise.name_es or exercise.name if exercise else '' }}" required>
+                    </div>
+                    {% if exercise and exercise.image_url %}
+                    <div class="mb-3 text-center">
+                        <img src="{{ exercise.image_url }}" alt="Actual" style="max-height:100px;object-fit:contain;" class="mb-2">
+                        <div class="text-muted small">Imagen actual. Sube una nueva para reemplazarla.</div>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Imagen</label>
+                        <input type="file" name="image_file" accept="image/*" class="form-control mb-2">
+                        <div class="text-muted small">O pega una URL:</div>
+                        <input type="url" name="image_url" class="form-control" placeholder="https://..." value="{{ exercise.image_url if exercise and exercise.image_url and not exercise.image_url.startswith('/static/uploads/') else '' }}">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">URL de la imagen</label>
-                        <input type="url" name="image_url" class="form-control" placeholder="https://...">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_timed" id="is_timed" value="1"
+                                {% if exercise and exercise.is_timed %}checked{% endif %}>
+                            <label class="form-check-label" for="is_timed">Medición por tiempo (segundos)</label>
+                            <small class="text-muted d-block">Ej: planchas, sentadilla isométrica — en lugar de peso y reps</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="show_cardio_metrics" id="show_cardio_metrics" value="1"
+                                {% if exercise and exercise.show_cardio_metrics %}checked{% endif %}>
+                            <label class="form-check-label" for="show_cardio_metrics">Incluir resistencia y calorías</label>
+                            <small class="text-muted d-block">Ej: bicicleta — registra resistencia y calorías por serie</small>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Equipamiento</label>
-                        <input type="text" name="equipment" class="form-control" placeholder="Barra, Mancuerna, Máquina...">
+                        <div class="d-flex flex-wrap gap-3">
+                            {% set eq_list = (exercise.equipment or '').split(', ') if exercise else [] %}
+                            {% for eq in equipment_options %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="equipment" value="{{ eq }}"
+                                    {% if eq in eq_list %}checked{% endif %}>
+                                <label class="form-check-label">{{ eq }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Grupo muscular principal</label>
                         <select name="muscle_group" class="form-select">
                             <option value="">Seleccionar...</option>
                             {% for g in grupos %}
-                            <option value="{{ g }}">{{ g }}</option>
+                            <option value="{{ g }}" {% if exercise and exercise.muscle_group == g %}selected{% endif %}>{{ g }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -33,11 +69,20 @@
                         <select name="muscle_group_secondary" class="form-select">
                             <option value="">Ninguno</option>
                             {% for g in grupos %}
-                            <option value="{{ g }}">{{ g }}</option>
+                            <option value="{{ g }}" {% if exercise and exercise.muscle_group_secondary == g %}selected{% endif %}>{{ g }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-warning w-100">Guardar ejercicio</button>
+                    <div class="mb-3">
+                        <label class="form-label">Grupo muscular terciario <small class="text-muted">(opcional)</small></label>
+                        <select name="muscle_group_secondary2" class="form-select">
+                            <option value="">Ninguno</option>
+                            {% for g in grupos %}
+                            <option value="{{ g }}" {% if exercise and exercise.muscle_group_secondary2 == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">{{ "Actualizar ejercicio" if exercise else "Guardar ejercicio" }}</button>
                     <a href="/routines/exercises" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
                 </form>
             </div>
