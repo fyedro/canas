@@ -9,7 +9,14 @@
     <div class="col-md-8 col-lg-6">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0">{{ workout.nombre }}</h4>
-            <small class="text-muted"><span x-text="elapsed"></span></small>
+            <div class="d-flex align-items-center gap-2">
+                {% if workout_data %}
+                <label class="text-muted small">Fecha:</label>
+                <input type="date" class="form-control form-control-sm" style="width:auto"
+                       name="fecha" form="saveForm" value="{{ workout.fecha }}">
+                {% endif %}
+                <small class="text-muted"><span x-text="elapsed"></span></small>
+            </div>
         </div>
 
         <template x-for="(ex, exIdx) in exercises" :key="exIdx">
