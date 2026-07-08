@@ -20,7 +20,7 @@
                     <div class="exercise-option d-flex align-items-center gap-2 p-2 rounded"
                          style="cursor:pointer"
                          data-name="{{ ex.name|lower }}"
-                         onclick="selectExercise({{ ex.name|tojson }}, {{ 'true' if ex.is_timed else 'false' }}, {{ 'true' if ex.show_cardio_metrics else 'false' }})"
+                         onclick="var f=window._addExercise;if(f)f({{ ex.name|tojson }},{{ 'true' if ex.is_timed else 'false' }},{{ 'true' if ex.show_cardio_metrics else 'false' }})"
                          onmouseenter="this.classList.add('bg-secondary')"
                          onmouseleave="this.classList.remove('bg-secondary')">
                         {% if ex.image_url %}
@@ -131,21 +131,17 @@
 
 {% block extra_scripts %}
 <script>
-function selectExercise(name, isTimed, hasCardio) {
-    window.dispatchEvent(new CustomEvent('add-exercise', {
-        detail: { name: name, is_timed: isTimed, has_cardio: hasCardio }
-    }));
-}
-
 function filterExercises() {
-    const query = document.getElementById('exerciseSearch').value.toLowerCase();
+    const query = document.getElementById('exerciseSearch')?.value.toLowerCase() || '';
     const list = document.getElementById('exerciseList');
     if (!list) return;
-    for (const el of list.children) {
+    Array.from(list.children).forEach(el => {
         const name = el.getAttribute('data-name') || '';
         el.style.display = name.includes(query) ? '' : 'none';
-    }
+    });
 }
+
+window._addExercise = null;
 
 function workoutApp() {
     return {
@@ -155,9 +151,7 @@ function workoutApp() {
         elapsedInterval: null,
 
         init() {
-            window.addEventListener('add-exercise', (e) => {
-                this.addNewExercise(e.detail.name, e.detail.is_timed, e.detail.has_cardio);
-            });
+            window._addExercise = (name, isTimed, hasCardio) => this.addNewExercise(name, isTimed, hasCardio);
 
             {% if workout_data %}
             this.exercises = [
