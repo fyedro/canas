@@ -341,22 +341,221 @@ async def finish_workout(
         total = int(total)
         await db.execute(delete(WorkoutSet).where(WorkoutSet.workout_id == workout_id))
 
-        # Update workout date if provided
+        fecha_str = data.get("fecha")
+        if fecha_str:
+            try:
+                workout.fecha = date.fromisoformat(fecha_str)
+            except (ValueError, TypeError):
+                pass
+
+        for i in range(total):
+            exercise_name = data.get(f"exercise_name_{i}")
+            exercise_order = int(data.get(f"exercise_order_{i}", 0))
+            set_number = int(data.get(f"set_number_{i}", 1))
+            weight = data.get(f"weight_{i}")
+            reps = data.get(f"reps_{i}")
+            completed = data.get(f"completed_{i}", "false") == "true"
+            is_timed = data.get(f"is_timed_{i}", "false") == "true"
+            resistencia = data.get(f"resistencia_{i}")
+            calorias = data.get(f"calorias_{i}")
+            duracion_minutos = data.get(f"duracion_minutos_{i}")
+            distancia_km = data.get(f"distancia_km_{i}")
+
+            ws = WorkoutSet(
+                workout_id=workout_id,
+                exercise_name=exercise_name,
+                exercise_order=exercise_order,
+                set_number=set_number,
+                weight=float(weight) if weight else None,
+                reps=int(reps) if reps else None,
+                is_timed=is_timed,
+                completed=completed,
+                resistencia=float(resistencia) if resistencia else None,
+                calorias=float(calorias) if calorias else None,
+                duracion_minutos=int(duracion_minutos) if duracion_minutos else None,
+                distancia_km=float(distancia_km) if distancia_km else None,
+            )
+            db.add(ws)
+
+    now = datetime.utcnow()
+    workout.hora_fin = now
+    if workout.hora_inicio:
+        workout.duracion = int((now - workout.hora_inicio).total_seconds() / 60)
+
+    await db.commit()
+    return RedirectResponse(url=f"/workout/{workout_id}", status_code=302)
+
+
+@router.post("/{workout_id}/delete")
+async def delete_workout(
+    workout_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    result = await db.execute(
+        select(Workout).where(Workout.id == workout_id, Workout.user_id == user.id)
+    )
+    workout = result.scalar_one_or_none()
+    if workout:
+        await db.delete(workout)
+    await db.commit()
+    return RedirectResponse(url="/workout", status_code=302)
+
+
+@router.get("/{workout_id}", response_class=HTMLResponse)
+async def workout_detail(
+    request: Request,
+    workout_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(Workout)
+        .where(Workout.id == workout_id, Workout.user_id == user.id)
+        .options(selectinload(Workout.sets))
+    )
+    workout = result.scalar_one_or_none()
+    if not workout:
+        raise HTTPException(status_code=404, detail="No encontrado")
+
+    exercises = {}
+    total_volume = 0
+    for s in workout.sets:
+        if s.exercise_name not in exercises:
+            exercises[s.exercise_name] = []
+        exercises[s.exercise_name].append(s)
+        if s.weight and s.reps:
+            total_volume += s.weight * s.reps
+
+    # Muscle group distribution across the workout
+    # Look up exercise -> muscle group mapping
+    ex_names = list(exercises.keys())
+    result = await db.execute(
+        select(Exercise).where(Exercise.name.in_(ex_names))
+    )
+    exercise_objs = {e.name: e for e in result.scalars().all()}
+
+    ALL_MUSCLES = [
+        "Abdominales", "Antebrazo", "Bíceps", "Cardio", "Cuádriceps", "Cuello",
+        "Cuerpo completo", "Dorsal", "Espalda baja", "Gemelos", "Glúteos",
+        "Hombros", "Isquiotibiales", "Pecho", "Tríceps",
+    ]
+    muscle_pct = {m: 0 for m in ALL_MUSCLES}
+
+    for ex_name in ex_names:
+        eo = exercise_objs.get(ex_name)
+        if not eo:
+            continue
+        sets = exercises[ex_name]
+        total_sets = len(sets)
+        completed_sets = sum(1 for s in sets if s.completed)
+        if completed_sets == 0:
+            continue
+        # Count each exercise's muscle groups weighted by completed sets
+        for m in ALL_MUSCLES:
+            val = 0
+            if m == eo.muscle_group:
+                val = 100
+            elif m == eo.muscle_group_secondary:
+                val = 70
+            elif m == eo.muscle_group_secondary2:
+                val = 40
+            muscle_pct[m] += val * completed_sets
+
+    total_weight = sum(muscle_pct.values())
+    if total_weight:
+        for m in muscle_pct:
+            muscle_pct[m] = round(muscle_pct[m] / total_weight * 100, 1)
+
+    return templates.TemplateResponse(request, "workout/detail.html", {
+        "user": user, "workout": workout,
+        "exercises": exercises, "total_volume": total_volume,
+        "muscle_labels": list(muscle_pct.keys()),
+        "muscle_values": list(muscle_pct.values()),
+    })
+
+
+@router.get("/{workout_id}/edit", response_class=HTMLResponse)
+async def edit_workout_page(
+    request: Request,
+    workout_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(Workout)
+        .where(Workout.id == workout_id, Workout.user_id == user.id)
+        .options(selectinload(Workout.sets))
+    )
+    workout = result.scalar_one_or_none()
+    if not workout:
+        raise HTTPException(status_code=404, detail="No encontrado")
+
+    exercises_dict = {}
+    ex_names = set()
+    for s in workout.sets:
+        if s.exercise_name not in exercises_dict:
+            exercises_dict[s.exercise_name] = []
+        exercises_dict[s.exercise_name].append(s)
+        ex_names.add(s.exercise_name)
+
+    # Look up exercise metadata (is_timed, show_cardio_metrics)
+    if ex_names:
+        result = await db.execute(
+            select(Exercise).where(Exercise.name.in_(ex_names))
+        )
+        ex_meta = {e.name: e for e in result.scalars().all()}
+    else:
+        ex_meta = {}
+
+    # All exercises for adding during editing
+    result = await db.execute(
+        select(Exercise).where(
+            (Exercise.is_custom == False) | (Exercise.user_id == user.id)
+        ).order_by(Exercise.name)
+    )
+    all_exercises = result.scalars().all()
+
+    return templates.TemplateResponse(request, "workout/active.html", {
+        "user": user, "workout": workout, "routine": None,
+        "workout_data": exercises_dict,
+        "ex_meta": ex_meta,
+        "all_exercises": all_exercises,
+    })
+
+
+@router.post("/{workout_id}/edit/save")
+async def save_workout_edit(
+    workout_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: UserProfile = Depends(get_current_user),
+):
+    if not user:
+        return RedirectResponse(url="/auth/login")
+
+    result = await db.execute(
+        select(Workout).where(Workout.id == workout_id, Workout.user_id == user.id)
+    )
+    workout = result.scalar_one_or_none()
+    if not workout:
+        raise HTTPException(status_code=404, detail="No encontrado")
+
+    data = await request.form()
+    total = int(data.get("total", 0))
+
     fecha_str = data.get("fecha")
     if fecha_str:
         try:
             workout.fecha = date.fromisoformat(fecha_str)
-        except (ValueError, TypeError):
-            pass
-
-    total = int(data.get("total", 0))
-
-    # Update workout date if provided
-    fecha_str = data.get("fecha")
-    if fecha_str:
-        try:
-            from datetime import date as date_type
-            workout.fecha = date_type.fromisoformat(fecha_str)
         except (ValueError, TypeError):
             pass
 
