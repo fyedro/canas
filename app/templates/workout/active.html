@@ -14,7 +14,7 @@
             </div>
             <div class="modal-body">
                 <input type="text" class="form-control mb-3" id="exerciseSearch"
-                       placeholder="Buscar ejercicio..." oninput="filterExercises()">
+                       placeholder="Buscar ejercicio..." onkeyup="filterExercises()">
                 <div id="exerciseList" style="max-height: 400px; overflow-y: auto;">
                     {% for ex in all_exercises %}
                     <div class="exercise-option d-flex align-items-center gap-2 p-2 rounded"
@@ -131,6 +131,22 @@
 
 {% block extra_scripts %}
 <script>
+function selectExercise(name, isTimed, hasCardio) {
+    window.dispatchEvent(new CustomEvent('add-exercise', {
+        detail: { name: name, is_timed: isTimed, has_cardio: hasCardio }
+    }));
+}
+
+function filterExercises() {
+    const query = document.getElementById('exerciseSearch').value.toLowerCase();
+    const list = document.getElementById('exerciseList');
+    if (!list) return;
+    for (const el of list.children) {
+        const name = el.getAttribute('data-name') || '';
+        el.style.display = name.includes(query) ? '' : 'none';
+    }
+}
+
 function workoutApp() {
     return {
         exercises: [],
@@ -139,6 +155,10 @@ function workoutApp() {
         elapsedInterval: null,
 
         init() {
+            window.addEventListener('add-exercise', (e) => {
+                this.addNewExercise(e.detail.name, e.detail.is_timed, e.detail.has_cardio);
+            });
+
             {% if workout_data %}
             this.exercises = [
                 {% for ex_name, sets in workout_data.items() %}
@@ -256,18 +276,6 @@ function workoutApp() {
             return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
         }
     };
-}
-
-function selectExercise(name, isTimed, hasCardio) {
-    const app = document.querySelector('[x-data]').__x.$data;
-    app.addNewExercise(name, isTimed, hasCardio);
-}
-
-function filterExercises() {
-    const query = document.getElementById('exerciseSearch').value.toLowerCase();
-    document.querySelectorAll('.exercise-option').forEach(el => {
-        el.style.display = el.dataset.name.includes(query) ? '' : 'none';
-    });
 }
 </script>
 {% endblock %}
