@@ -5,38 +5,6 @@
       action="{% if workout_data %}/workout/{{ workout.id }}/edit/save{% else %}/workout/active/{{ workout.id }}/finish{% endif %}">
 </form>
 
-<div class="modal fade" id="addExerciseModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Añadir ejercicio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" class="form-control mb-3" id="exerciseSearch"
-                       placeholder="Buscar ejercicio..." onkeyup="filterExercises()">
-                <div id="exerciseList" style="max-height: 400px; overflow-y: auto;">
-                    {% for ex in all_exercises %}
-                    <div class="exercise-option d-flex align-items-center gap-2 p-2 rounded"
-                         style="cursor:pointer"
-                         data-name="{{ ex.name|lower }}"
-                         onclick="var f=window._addExercise;if(f)f({{ ex.name|tojson }},{{ 'true' if ex.is_timed else 'false' }},{{ 'true' if ex.show_cardio_metrics else 'false' }})"
-                         onmouseenter="this.classList.add('bg-secondary')"
-                         onmouseleave="this.classList.remove('bg-secondary')">
-                        {% if ex.image_url %}
-                        <img src="{{ ex.image_url }}" class="exercise-img" alt="">
-                        {% endif %}
-                        <span>{{ ex.name }}</span>
-                        {% if ex.is_timed %}<span class="badge bg-info ms-auto">Tiempo</span>{% endif %}
-                        {% if ex.show_cardio_metrics %}<span class="badge bg-warning">Cardio</span>{% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div x-data="workoutApp()" x-init="init()" class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -118,9 +86,39 @@
             </div>
         </template>
 
-        <button class="btn btn-outline-info w-100 mb-3" data-bs-toggle="modal" data-bs-target="#addExerciseModal">
-            <i class="bi bi-plus-circle"></i> Añadir ejercicio
-        </button>
+        <div class="card mb-3" x-show="!showSearch">
+            <div class="card-body text-center">
+                <button class="btn btn-outline-info w-100" @click="showSearch = true; searchQuery = ''; $nextTick(() => { if ($refs.searchInput) $refs.searchInput.focus() })">
+                    <i class="bi bi-plus-circle"></i> Añadir ejercicio
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-3" x-show="showSearch">
+            <div class="card-body">
+                <input type="text" class="form-control mb-2" x-ref="searchInput"
+                       x-model="searchQuery" placeholder="Buscar ejercicio...">
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <template x-for="ex in filteredExercises" :key="ex.name">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded"
+                             style="cursor:pointer"
+                             @click="addNewExercise(ex.name, ex.is_timed, ex.show_cardio_metrics)"
+                             @mouseenter="$el.classList.add('bg-secondary')"
+                             @mouseleave="$el.classList.remove('bg-secondary')">
+                            <span x-text="ex.name"></span>
+                            <span class="badge bg-info ms-auto" x-show="ex.is_timed">Tiempo</span>
+                            <span class="badge bg-warning" x-show="ex.show_cardio_metrics">Cardio</span>
+                        </div>
+                    </template>
+                    <div class="text-muted text-center py-2" x-show="filteredExercises.length === 0">
+                        Sin resultados
+                    </div>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm mt-2 w-100" @click="showSearch = false">
+                    Cancelar
+                </button>
+            </div>
+        </div>
 
         <button type="button" class="btn btn-outline-danger w-100" @click="finishWorkout()">
             <i class="bi bi-stop-fill"></i> {% if workout_data %}Volver al detalle{% else %}Finalizar{% endif %}
@@ -131,28 +129,17 @@
 
 {% block extra_scripts %}
 <script>
-function filterExercises() {
-    const query = document.getElementById('exerciseSearch')?.value.toLowerCase() || '';
-    const list = document.getElementById('exerciseList');
-    if (!list) return;
-    Array.from(list.children).forEach(el => {
-        const name = el.getAttribute('data-name') || '';
-        el.style.display = name.includes(query) ? '' : 'none';
-    });
-}
-
-window._addExercise = null;
-
 function workoutApp() {
     return {
         exercises: [],
         elapsed: '00:00',
         elapsedSeconds: 0,
         elapsedInterval: null,
+        showSearch: false,
+        searchQuery: '',
+        allExercises: [],
 
         init() {
-            window._addExercise = (name, isTimed, hasCardio) => this.addNewExercise(name, isTimed, hasCardio);
-
             {% if workout_data %}
             this.exercises = [
                 {% for ex_name, sets in workout_data.items() %}
@@ -189,10 +176,24 @@ function workoutApp() {
             {% endfor %}
             {% endif %}
 
+            this.allExercises = [
+                {% for ex in all_exercises %}
+                {name: {{ ex.name|tojson }}, is_timed: {{ 'true' if ex.is_timed else 'false' }}, show_cardio_metrics: {{ 'true' if ex.show_cardio_metrics else 'false' }}},
+                {% endfor %}
+            ];
+
             this.elapsedInterval = setInterval(() => {
                 this.elapsedSeconds++;
                 this.elapsed = this.formatTime(this.elapsedSeconds);
             }, 1000);
+        },
+
+        get filteredExercises() {
+            const q = this.searchQuery.toLowerCase();
+            return this.allExercises.filter(ex =>
+                !this.exercises.some(e => e.exercise_name === ex.name) &&
+                ex.name.toLowerCase().includes(q)
+            );
         },
 
         addNewExercise(name, isTimed, hasCardio) {
@@ -204,8 +205,8 @@ function workoutApp() {
                 exercise_order: 0,
                 sets: [{weight: 0, reps: hasCardio ? 0 : 10, resistencia: '', calorias: '', completed: false}],
             });
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addExerciseModal'));
-            if (modal) modal.hide();
+            this.showSearch = false;
+            this.searchQuery = '';
         },
 
         removeExercise(exIdx) {
