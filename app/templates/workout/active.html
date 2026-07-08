@@ -195,7 +195,7 @@ function workoutApp() {
                     exercise_order: 0,
                     sets: [
                         {% for s in sets %}
-                        {weight: {{ s.weight or 0 }}, reps: {{ s.reps or 0 }}, duracion_minutos: {{ s.duracion_minutos or 0 }}, distancia_km: {{ s.distancia_km or '' }}, resistencia: {{ s.resistencia or 0 }}, calorias: {{ s.calorias or 0 }}, completed: {{ 'true' if s.completed else 'false' }}, _id: {{ s.id }}},
+                        {weight: {{ s.weight or 0 }}, reps: {{ s.reps or 0 }}, duracion_minutos: {{ s.duracion_minutos or 0 }}, distancia_km: {{ s.distancia_km or 0 }}, resistencia: {{ s.resistencia or 0 }}, calorias: {{ s.calorias or 0 }}, completed: {{ 'true' if s.completed else 'false' }}, _id: {{ s.id }}},
                         {% endfor %}
                     ],
                 },
