@@ -238,8 +238,17 @@ async def active_workout_page(
     if not routine:
         raise HTTPException(status_code=404, detail="Rutina no encontrada")
 
+    # All exercises for adding during workout
+    result = await db.execute(
+        select(Exercise).where(
+            (Exercise.is_custom == False) | (Exercise.user_id == user.id)
+        ).order_by(Exercise.name)
+    )
+    all_exercises = result.scalars().all()
+
     return templates.TemplateResponse(request, "workout/active.html", {
-        "user": user, "workout": workout, "routine": routine
+        "user": user, "workout": workout, "routine": routine,
+        "all_exercises": all_exercises,
     })
 
 
@@ -485,9 +494,18 @@ async def edit_workout_page(
             exercises_dict[s.exercise_name] = []
         exercises_dict[s.exercise_name].append(s)
 
+    # All exercises for adding during editing
+    result = await db.execute(
+        select(Exercise).where(
+            (Exercise.is_custom == False) | (Exercise.user_id == user.id)
+        ).order_by(Exercise.name)
+    )
+    all_exercises = result.scalars().all()
+
     return templates.TemplateResponse(request, "workout/active.html", {
         "user": user, "workout": workout, "routine": None,
         "workout_data": exercises_dict,
+        "all_exercises": all_exercises,
     })
 
 
