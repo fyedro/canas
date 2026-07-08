@@ -21,7 +21,7 @@
                     <div class="exercise-option d-flex align-items-center gap-2 p-2 rounded"
                          style="cursor:pointer"
                          data-name="{{ ex.name|lower }}"
-                         onclick="selectExercise('{{ ex.name|e('js') }}', {{ 'true' if ex.is_timed else 'false' }}, {{ 'true' if ex.show_cardio_metrics else 'false' }})"
+                         onclick="selectExercise({{ ex.name|tojson }}, {{ 'true' if ex.is_timed else 'false' }}, {{ 'true' if ex.show_cardio_metrics else 'false' }})"
                          onmouseenter="this.classList.add('bg-secondary')"
                          onmouseleave="this.classList.remove('bg-secondary')">
                         {% if ex.image_url %}
@@ -204,10 +204,11 @@ function workoutApp() {
             {% if workout_data %}
             this.exercises = [
                 {% for ex_name, sets in workout_data.items() %}
+                {% set meta = ex_meta.get(ex_name) %}
                 {
                     exercise_name: '{{ ex_name|safe }}',
-                    is_timed: {{ sets[0].is_timed|lower if sets and sets[0].is_timed is not none else 'false' }},
-                    show_cardio_metrics: {{ sets[0].show_cardio_metrics|lower if sets and sets[0].show_cardio_metrics is not none else 'false' }},
+                    is_timed: {{ 'true' if sets[0].is_timed else 'false' }},
+                    show_cardio_metrics: {{ 'true' if meta and meta.show_cardio_metrics else 'false' }},
                     vuelta: 0,
                     exercise_order: 0,
                     sets: [

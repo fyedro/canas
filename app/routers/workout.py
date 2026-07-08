@@ -489,10 +489,21 @@ async def edit_workout_page(
         raise HTTPException(status_code=404, detail="No encontrado")
 
     exercises_dict = {}
+    ex_names = set()
     for s in workout.sets:
         if s.exercise_name not in exercises_dict:
             exercises_dict[s.exercise_name] = []
         exercises_dict[s.exercise_name].append(s)
+        ex_names.add(s.exercise_name)
+
+    # Look up exercise metadata (is_timed, show_cardio_metrics)
+    if ex_names:
+        result = await db.execute(
+            select(Exercise).where(Exercise.name.in_(ex_names))
+        )
+        ex_meta = {e.name: e for e in result.scalars().all()}
+    else:
+        ex_meta = {}
 
     # All exercises for adding during editing
     result = await db.execute(
@@ -505,6 +516,7 @@ async def edit_workout_page(
     return templates.TemplateResponse(request, "workout/active.html", {
         "user": user, "workout": workout, "routine": None,
         "workout_data": exercises_dict,
+        "ex_meta": ex_meta,
         "all_exercises": all_exercises,
     })
 
