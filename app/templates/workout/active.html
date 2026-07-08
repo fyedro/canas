@@ -14,6 +14,15 @@
                 <label class="text-muted small">Fecha:</label>
                 <input type="date" class="form-control form-control-sm" style="width:auto"
                        name="fecha" form="saveForm" value="{{ workout.fecha }}">
+                <label class="text-muted small">Inicio:</label>
+                <input type="time" class="form-control form-control-sm" style="width:auto"
+                       name="hora_inicio" form="saveForm"
+                       value="{{ workout.hora_inicio.strftime('%H:%M') if workout.hora_inicio else '' }}">
+                <label class="text-muted small">Fin:</label>
+                <input type="time" class="form-control form-control-sm" style="width:auto"
+                       name="hora_fin" form="saveForm"
+                       value="{{ workout.hora_fin.strftime('%H:%M') if workout.hora_fin else '' }}">
+                <small class="text-muted ms-2">Duración: {{ workout.duracion }} min</small>
                 {% endif %}
                 <small class="text-muted"><span x-text="elapsed"></span></small>
             </div>

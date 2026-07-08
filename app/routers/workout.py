@@ -348,6 +348,26 @@ async def finish_workout(
             except (ValueError, TypeError):
                 pass
 
+        hora_inicio = data.get("hora_inicio")
+        hora_fin = data.get("hora_fin")
+        if hora_inicio:
+            try:
+                from datetime import datetime as dt_type
+                parts = hora_inicio.split(":")
+                h, m = int(parts[0]), int(parts[1])
+                workout.hora_inicio = workout.hora_inicio.replace(hour=h, minute=m, second=0) if workout.hora_inicio else datetime.combine(workout.fecha, datetime.min.time().replace(hour=h, minute=m))
+            except (ValueError, IndexError, TypeError, AttributeError):
+                pass
+        if hora_fin:
+            try:
+                parts = hora_fin.split(":")
+                h, m = int(parts[0]), int(parts[1])
+                workout.hora_fin = workout.hora_fin.replace(hour=h, minute=m, second=0) if workout.hora_fin else datetime.combine(workout.fecha, datetime.min.time().replace(hour=h, minute=m))
+            except (ValueError, IndexError, TypeError, AttributeError):
+                pass
+        if workout.hora_inicio and workout.hora_fin:
+            workout.duracion = int((workout.hora_fin - workout.hora_inicio).total_seconds() / 60)
+
         for i in range(total):
             exercise_name = data.get(f"exercise_name_{i}")
             exercise_order = int(data.get(f"exercise_order_{i}", 0))
@@ -558,6 +578,25 @@ async def save_workout_edit(
             workout.fecha = date.fromisoformat(fecha_str)
         except (ValueError, TypeError):
             pass
+
+    hora_inicio = data.get("hora_inicio")
+    hora_fin = data.get("hora_fin")
+    if hora_inicio:
+        try:
+            parts = hora_inicio.split(":")
+            h, m = int(parts[0]), int(parts[1])
+            workout.hora_inicio = workout.hora_inicio.replace(hour=h, minute=m, second=0) if workout.hora_inicio else datetime.combine(workout.fecha, datetime.min.time().replace(hour=h, minute=m))
+        except (ValueError, IndexError, TypeError, AttributeError):
+            pass
+    if hora_fin:
+        try:
+            parts = hora_fin.split(":")
+            h, m = int(parts[0]), int(parts[1])
+            workout.hora_fin = workout.hora_fin.replace(hour=h, minute=m, second=0) if workout.hora_fin else datetime.combine(workout.fecha, datetime.min.time().replace(hour=h, minute=m))
+        except (ValueError, IndexError, TypeError, AttributeError):
+            pass
+    if workout.hora_inicio and workout.hora_fin:
+        workout.duracion = int((workout.hora_fin - workout.hora_inicio).total_seconds() / 60)
 
     # Delete all existing sets and re-create from form data
     await db.execute(delete(WorkoutSet).where(WorkoutSet.workout_id == workout_id))
