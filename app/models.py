@@ -164,6 +164,8 @@ class WorkoutSet(Base):
     notes = Column(Text, nullable=True)
     resistencia = Column(Float, nullable=True)
     calorias = Column(Float, nullable=True)
+    duracion_minutos = Column(Integer, nullable=True)
+    distancia_km = Column(Float, nullable=True)
     
     workout = relationship("Workout", back_populates="sets")
 

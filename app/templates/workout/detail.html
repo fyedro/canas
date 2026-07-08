@@ -27,11 +27,15 @@
         <h5>{{ ex_name }} {% if not has_any %}<span class="badge bg-secondary">Saltado</span>{% endif %}</h5>
         {% if has_any %}
         <div class="table-responsive">
-            <table class="table table-sm table-dark mb-0">
+            <table class="table table-sm mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
-                        {% if sets[0].is_timed %}
+                        {% if sets[0].is_timed and sets[0].show_cardio_metrics %}
+                        <th>Min.</th>
+                        <th>Seg.</th>
+                        <th>Dist.</th>
+                        {% elif sets[0].is_timed %}
                         <th>Duración</th>
                         {% else %}
                         <th>Peso</th>
@@ -46,7 +50,11 @@
                     {% for s in sets %}
                     <tr>
                         <td>{{ s.set_number }}</td>
-                        {% if s.is_timed %}
+                        {% if s.is_timed and s.show_cardio_metrics %}
+                        <td>{{ s.duracion_minutos if s.duracion_minutos else "-" }}</td>
+                        <td>{{ s.reps if s.reps else "-" }} s</td>
+                        <td>{{ "%.1f"|format(s.distancia_km) if s.distancia_km else "-" }} km</td>
+                        {% elif s.is_timed %}
                         <td>{{ s.reps if s.reps else "-" }} s</td>
                         {% else %}
                         <td>{{ "%.1f"|format(s.weight) if s.weight else "-" }} kg</td>

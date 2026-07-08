@@ -31,7 +31,21 @@
                                     <template x-if="!ex.is_timed">
                                         <th>Peso (kg)</th>
                                     </template>
-                                    <th x-text="ex.is_timed ? 'Segundos' : 'Reps'"></th>
+                                    <template x-if="ex.is_timed && ex.show_cardio_metrics">
+                                        <th>Min.</th>
+                                    </template>
+                                    <template x-if="ex.is_timed && ex.show_cardio_metrics">
+                                        <th style="width:70px">Seg.</th>
+                                    </template>
+                                    <template x-if="ex.is_timed && !ex.show_cardio_metrics">
+                                        <th>Segundos</th>
+                                    </template>
+                                    <template x-if="!ex.is_timed">
+                                        <th>Reps</th>
+                                    </template>
+                                    <template x-if="ex.show_cardio_metrics">
+                                        <th style="width:70px">Dist.</th>
+                                    </template>
                                     <th style="width:70px" x-show="ex.show_cardio_metrics">Resist.</th>
                                     <th style="width:70px" x-show="ex.show_cardio_metrics">Cal.</th>
                                     <th style="width:50px">Hecho</th>
@@ -49,11 +63,41 @@
                                                        :disabled="set.completed">
                                             </td>
                                         </template>
-                                        <td>
-                                            <input type="number" x-model="set.reps"
-                                                   class="form-control form-control-sm" min="0"
-                                                   :disabled="set.completed">
-                                        </td>
+                                        <template x-if="ex.is_timed && ex.show_cardio_metrics">
+                                            <td>
+                                                <input type="number" x-model="set.duracion_minutos"
+                                                       class="form-control form-control-sm" min="0"
+                                                       :disabled="set.completed" placeholder="min">
+                                            </td>
+                                        </template>
+                                        <template x-if="ex.is_timed && ex.show_cardio_metrics">
+                                            <td>
+                                                <input type="number" x-model="set.reps"
+                                                       class="form-control form-control-sm" min="0"
+                                                       :disabled="set.completed" placeholder="seg">
+                                            </td>
+                                        </template>
+                                        <template x-if="ex.is_timed && !ex.show_cardio_metrics">
+                                            <td>
+                                                <input type="number" x-model="set.reps"
+                                                       class="form-control form-control-sm" min="0"
+                                                       :disabled="set.completed">
+                                            </td>
+                                        </template>
+                                        <template x-if="!ex.is_timed">
+                                            <td>
+                                                <input type="number" x-model="set.reps"
+                                                       class="form-control form-control-sm" min="0"
+                                                       :disabled="set.completed">
+                                            </td>
+                                        </template>
+                                        <template x-if="ex.show_cardio_metrics">
+                                            <td>
+                                                <input type="number" x-model="set.distancia_km"
+                                                       class="form-control form-control-sm" min="0" step="0.1"
+                                                       :disabled="set.completed" placeholder="km">
+                                            </td>
+                                        </template>
                                         <td x-show="ex.show_cardio_metrics">
                                             <input type="number" x-model="set.resistencia"
                                                    class="form-control form-control-sm" min="0" step="0.5"
@@ -151,7 +195,7 @@ function workoutApp() {
                     exercise_order: 0,
                     sets: [
                         {% for s in sets %}
-                        {weight: {{ s.weight or 0 }}, reps: {{ s.reps or 0 }}, resistencia: {{ s.resistencia or 0 }}, calorias: {{ s.calorias or 0 }}, completed: {{ 'true' if s.completed else 'false' }}, _id: {{ s.id }}},
+                        {weight: {{ s.weight or 0 }}, reps: {{ s.reps or 0 }}, duracion_minutos: {{ s.duracion_minutos or 0 }}, distancia_km: {{ s.distancia_km or '' }}, resistencia: {{ s.resistencia or 0 }}, calorias: {{ s.calorias or 0 }}, completed: {{ 'true' if s.completed else 'false' }}, _id: {{ s.id }}},
                         {% endfor %}
                     ],
                 },
@@ -168,7 +212,7 @@ function workoutApp() {
                 exercise_order: {{ re.orden }},
                 sets: [
                     {% for rs in re.sets %}
-                    {weight: {{ rs.weight or 0 }}, reps: {{ rs.reps or 0 }}, resistencia: 0, calorias: 0, completed: false},
+                    {weight: {{ rs.weight or 0 }}, reps: {{ rs.reps or 0 }}, duracion_minutos: 0, distancia_km: '', resistencia: 0, calorias: 0, completed: false},
                     {% endfor %}
                 ],
             });
@@ -203,7 +247,7 @@ function workoutApp() {
                 is_timed: isTimed,
                 show_cardio_metrics: hasCardio,
                 exercise_order: 0,
-                sets: [{weight: 0, reps: hasCardio ? 0 : 10, resistencia: '', calorias: '', completed: false}],
+                sets: [{weight: 0, reps: hasCardio ? 0 : 10, duracion_minutos: 0, distancia_km: '', resistencia: '', calorias: '', completed: false}],
             });
             this.showSearch = false;
             this.searchQuery = '';
@@ -217,7 +261,7 @@ function workoutApp() {
         addSet(exIdx) {
             const ex = this.exercises[exIdx];
             const last = ex.sets[ex.sets.length - 1];
-            const newSet = {completed: false, resistencia: 0, calorias: 0};
+            const newSet = {completed: false, duracion_minutos: 0, distancia_km: '', resistencia: 0, calorias: 0};
             if (!ex.is_timed) {
                 newSet.weight = last ? last.weight : 20;
                 newSet.reps = last ? last.reps : 10;
@@ -228,10 +272,14 @@ function workoutApp() {
             if (last) {
                 newSet.resistencia = last.resistencia;
                 newSet.calorias = last.calorias;
+                newSet.duracion_minutos = last.duracion_minutos;
+                newSet.distancia_km = last.distancia_km;
             }
             if (!ex.show_cardio_metrics) {
                 newSet.resistencia = '';
                 newSet.calorias = '';
+                newSet.duracion_minutos = '';
+                newSet.distancia_km = '';
             }
             ex.sets.push(newSet);
         },
@@ -258,6 +306,8 @@ function workoutApp() {
                     form.innerHTML += `<input type="hidden" name="is_timed_${idx}" value="${ex.is_timed}">`;
                     form.innerHTML += `<input type="hidden" name="resistencia_${idx}" value="${set.resistencia === '' || set.resistencia === undefined ? '' : set.resistencia}">`;
                     form.innerHTML += `<input type="hidden" name="calorias_${idx}" value="${set.calorias === '' || set.calorias === undefined ? '' : set.calorias}">`;
+                    form.innerHTML += `<input type="hidden" name="duracion_minutos_${idx}" value="${set.duracion_minutos || ''}">`;
+                    form.innerHTML += `<input type="hidden" name="distancia_km_${idx}" value="${set.distancia_km || ''}">`;
                     idx++;
                 }
             }

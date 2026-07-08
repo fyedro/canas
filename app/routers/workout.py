@@ -351,6 +351,8 @@ async def finish_workout(
             is_timed = data.get(f"is_timed_{i}", "false") == "true"
             resistencia = data.get(f"resistencia_{i}")
             calorias = data.get(f"calorias_{i}")
+            duracion_minutos = data.get(f"duracion_minutos_{i}")
+            distancia_km = data.get(f"distancia_km_{i}")
 
             ws = WorkoutSet(
                 workout_id=workout_id,
@@ -363,6 +365,8 @@ async def finish_workout(
                 completed=completed,
                 resistencia=float(resistencia) if resistencia else None,
                 calorias=float(calorias) if calorias else None,
+                duracion_minutos=int(duracion_minutos) if duracion_minutos else None,
+                distancia_km=float(distancia_km) if distancia_km else None,
             )
             db.add(ws)
 
@@ -554,6 +558,8 @@ async def save_workout_edit(
         is_timed = data.get(f"is_timed_{i}", "false") == "true"
         resistencia = data.get(f"resistencia_{i}")
         calorias = data.get(f"calorias_{i}")
+        duracion_minutos = data.get(f"duracion_minutos_{i}")
+        distancia_km = data.get(f"distancia_km_{i}")
 
         ws = WorkoutSet(
             workout_id=workout_id,
@@ -566,6 +572,8 @@ async def save_workout_edit(
             completed=completed,
             resistencia=float(resistencia) if resistencia else None,
             calorias=float(calorias) if calorias else None,
+            duracion_minutos=int(duracion_minutos) if duracion_minutos else None,
+            distancia_km=float(distancia_km) if distancia_km else None,
         )
         db.add(ws)
 

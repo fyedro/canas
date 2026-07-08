@@ -58,6 +58,8 @@ NEW_COLUMNS = {
         "is_timed BOOLEAN DEFAULT FALSE",
         "resistencia FLOAT",
         "calorias FLOAT",
+        "duracion_minutos INTEGER",
+        "distancia_km FLOAT",
     ],
     "user_profiles": [
         "theme VARCHAR(10) DEFAULT 'dark'",
